@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { depositFor, INSTAPAY, instapayReady } from "@/config/payments";
 import { formatPrice } from "@/lib/format";
@@ -18,7 +19,7 @@ function Copy({ value, label }: { value: string; label: string }) {
           /* selectable anyway */
         }
       }}
-      className="shrink-0 rounded-full bg-grape px-3 py-1.5 text-xs font-bold text-milk"
+      className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-grape px-4 text-sm font-bold text-milk"
       aria-label={`Copy ${label}`}
     >
       {copied ? "Copied" : "Copy"}
@@ -83,7 +84,7 @@ export function InstapayDeposit({
         {total != null && ` The rest, ${formatPrice(total - deposit)}, is paid in cash on delivery.`}
       </p>
 
-      <ol className="mt-5 grid gap-4">
+      <ol className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-4">
         <li className="rounded-[24px] bg-white p-5 ring-2 ring-grape/10">
           <p className="font-semibold">
             <span className="mr-2 inline-grid size-7 place-items-center rounded-full bg-grape text-sm text-milk">1</span>
@@ -94,7 +95,11 @@ export function InstapayDeposit({
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-milk px-4 py-3">
                 <div className="min-w-0">
                   <dt className="text-sm opacity-70">InstaPay address</dt>
-                  <dd className="truncate text-lg font-bold">{INSTAPAY.address}</dd>
+                  <dd className="text-base font-bold wrap-anywhere min-[360px]:text-lg">
+                    {/* on narrow phones, wrap before the @ rather than mid-name */}
+                    {INSTAPAY.address.split("@")[0]}
+                    <wbr />@{INSTAPAY.address.split("@").slice(1).join("@")}
+                  </dd>
                 </div>
                 <Copy value={INSTAPAY.address} label="InstaPay address" />
               </div>
@@ -119,6 +124,16 @@ export function InstapayDeposit({
             <a href={INSTAPAY.link} target="_blank" rel="noopener noreferrer" className="btn btn-ghost mt-3">
               Open InstaPay
             </a>
+          )}
+          {/* Phone shoppers can't scan their own screen, so the QR is for computers */}
+          {INSTAPAY.qr && (
+            <div className="mt-4 hidden items-center gap-4 rounded-2xl bg-milk p-3 sm:flex">
+              <Image src={INSTAPAY.qr} alt="InstaPay QR code" width={130} height={129} className="rounded-xl bg-white" />
+              <p className="text-sm">
+                <span className="block font-semibold">On a computer?</span>
+                Scan this with the InstaPay app on your phone.
+              </p>
+            </div>
           )}
         </li>
 

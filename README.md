@@ -33,7 +33,7 @@ Placing the order on Zink is still manual until Zink offers an API.
 
 ## Payments
 
-Every order needs a fixed **InstaPay deposit** (EGP 100, `src/config/payments.ts`); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. **Checkout stays paused until `INSTAPAY.phone` or `INSTAPAY.address` is filled in.**
+Every order needs a fixed **InstaPay deposit** (EGP 100, `src/config/payments.ts`); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
 
 ## Deploying
 
@@ -48,7 +48,6 @@ This store saves products, photos, orders and customer files to disk, so it need
 
 | Area | Where |
 | --- | --- |
-| InstaPay number / address | `src/config/payments.ts` (required to open checkout). |
 | Delivery fee | `SHIPPING_FEE` in `src/config/orders.ts` (`null` = confirmed on the phone). |
 | Custom item prices | `src/config/pricing.ts`. |
 | Print area size | `PRINT_AREA_CM` in `src/config/customization.ts` (ask Zink for their print specs). |
