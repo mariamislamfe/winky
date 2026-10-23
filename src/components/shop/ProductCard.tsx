@@ -29,7 +29,7 @@ export function ProductCard({
         decorative
         priority={priority}
         sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 420px) 45vw, 90vw"
-        className={`h-auto max-h-full w-auto max-w-full drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] ${hasSecond ? "transition-opacity duration-300 group-hover:opacity-0" : ""}`}
+        className={`size-full drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] ${hasSecond ? "transition-opacity duration-300 group-hover:opacity-0" : ""}`}
       />
       {/* second photo on hover (e.g. the back of a case) */}
       {hasSecond && (
@@ -38,7 +38,7 @@ export function ProductCard({
           image={1}
           decorative
           sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, 45vw"
-          className="absolute h-auto max-h-full w-auto max-w-full opacity-0 drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] transition-opacity duration-300 group-hover:opacity-100"
+          className="absolute inset-0 size-full opacity-0 drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] transition-opacity duration-300 group-hover:opacity-100"
         />
       )}
     </div>

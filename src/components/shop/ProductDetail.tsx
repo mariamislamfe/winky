@@ -45,7 +45,7 @@ export function ProductDetail({ product }: { product: Product }) {
                     image={photo}
                     priority
                     sizes="(min-width: 1024px) 50vw, 90vw"
-                    className="h-auto max-h-full w-auto max-w-full drop-shadow-[14px_16px_0_rgb(43_17_64/0.2)]"
+                    className="size-full drop-shadow-[14px_16px_0_rgb(43_17_64/0.2)]"
                   />
                 </motion.div>
               </AnimatePresence>

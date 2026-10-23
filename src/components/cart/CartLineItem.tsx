@@ -31,7 +31,7 @@ export function CartLineItem({ line, onNavigate }: { line: CartLine; onNavigate?
         className="flex h-24 w-20 shrink-0 items-center justify-center rounded-2xl p-2 sm:h-28 sm:w-24"
         style={{ background: product.stage }}
       >
-        <ProductVisual product={product} custom={line.custom} decorative sizes="96px" className="h-auto max-h-full w-auto max-w-full" />
+        <ProductVisual product={product} custom={line.custom} decorative sizes="96px" className="size-full" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-3">
