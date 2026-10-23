@@ -48,8 +48,8 @@ export function HeroSpotlight() {
   return (
     <div
       // On phones the shelf is centered, lifted --lift above the bottom, and only takes
-      // the height left under the hero buttons (~444px down)
-      className="hero-shelf absolute bottom-(--lift) left-1/2 z-20 flex aspect-[4/5] h-[clamp(64px,calc(100svh_-_var(--lift)_-_444px),min(40svh,76vw))] -translate-x-1/2 items-end justify-center [--lift:max(11vw,72px)] [@media(min-height:740px)]:[--lift:22vw] md:right-[7vw] md:bottom-[10.4vw] md:left-auto md:aspect-auto md:h-[min(58svh,33vw)] md:w-[30vw] md:translate-x-0"
+      // the height left under the hero buttons (~444px down) and, on taller phones, the sticker above it
+      className="hero-shelf absolute bottom-(--lift) left-1/2 z-20 flex aspect-[4/5] h-[clamp(64px,calc(100svh_-_var(--lift)_-_var(--reserve)),min(40svh,76vw))] -translate-x-1/2 items-end justify-center [--lift:11vw] [--reserve:444px] [@media(min-height:740px)]:[--lift:18vw] [@media(min-height:740px)]:[--reserve:520px] md:right-[7vw] md:bottom-[10.4vw] md:left-auto md:aspect-auto md:h-[min(58svh,33vw)] md:w-[30vw] md:translate-x-0"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -89,7 +89,8 @@ export function HeroSpotlight() {
         </AnimatePresence>
       </div>
 
-      {/* name + price sticker: under the product on phones (no room beside it), top-left on desktop */}
+      {/* name + price sticker: one line above the product on taller phones (hidden on shorter
+          screens, where the room it needs would shrink the product), top-left on desktop */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={`tag-${product.slug}`}
@@ -97,11 +98,11 @@ export function HeroSpotlight() {
           animate={{ scale: 1, rotate: -6 }}
           exit={reduce ? undefined : { scale: 0, rotate: 10, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 420, damping: 18, delay: reduce ? 0 : 0.15 }}
-          className="absolute top-[calc(100%+4px)] left-[45%] z-10 w-max max-w-[min(9.5rem,40vw)] origin-top-left rounded-2xl bg-butter text-grape shadow-[0_3px_0_rgb(43_17_64/0.25)] md:top-[6%] md:-left-[14%] md:w-auto md:max-w-[70%] md:origin-bottom-right"
+          className="absolute bottom-[calc(100%+14px)] left-1/2 z-10 w-max max-w-[88vw] -translate-x-1/2 rounded-2xl bg-butter text-grape shadow-[0_3px_0_rgb(43_17_64/0.25)] max-md:[@media(max-height:739px)]:hidden md:top-[6%] md:bottom-auto md:-left-[14%] md:w-auto md:max-w-[70%] md:translate-x-0 md:origin-bottom-right"
         >
-          <Link href={`/shop/${product.slug}`} className="block min-h-11 rounded-2xl px-3 py-2.5 md:px-4">
-            <span className="block text-xs leading-tight font-bold md:text-sm">{product.name}</span>
-            <span className="mt-0.5 block text-xs font-semibold tabular-nums opacity-80 md:text-sm">{formatPrice(product.price)}</span>
+          <Link href={`/shop/${product.slug}`} className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2.5 md:block md:px-4">
+            <span className="truncate text-xs leading-tight font-bold md:block md:text-sm md:whitespace-normal">{product.name}</span>
+            <span className="shrink-0 text-xs font-semibold tabular-nums opacity-80 md:mt-0.5 md:block md:text-sm">{formatPrice(product.price)}</span>
           </Link>
         </motion.div>
       </AnimatePresence>

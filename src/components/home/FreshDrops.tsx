@@ -69,7 +69,7 @@ export function FreshDrops() {
                   style={{ background: p.stage }}
                 >
                   <span className="absolute inset-[11%] flex items-center justify-center">
-                    <ProductVisual product={p} decorative sizes="(min-width: 1024px) 22vw, 45vw" className="h-auto max-h-full w-auto max-w-full transition-transform duration-500 ease-[var(--ease-gum)] group-hover:scale-105 group-hover:-rotate-3" />
+                    <ProductVisual product={p} decorative sizes="(min-width: 1024px) 22vw, 45vw" className="size-full transition-transform duration-500 ease-[var(--ease-gum)] group-hover:scale-105 group-hover:-rotate-3" />
                   </span>
                   {/* peeling corner */}
                   <span
