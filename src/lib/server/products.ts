@@ -3,11 +3,9 @@ import { randomUUID } from "node:crypto";
 import { DEFAULT_STAGE, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
 import { luminance } from "@/lib/color";
 import type { Category, Product, ProductImage } from "@/lib/types";
-import { deleteUploads, mutateProducts, readProducts } from "./store-fs";
+import { deleteProductPhotos, mutateProducts, photoName, readProducts } from "./store";
 
 export type FieldErrors = Partial<Record<"name" | "price" | "category" | "images" | "models" | "description" | "form", string>>;
-
-const MEDIA_SRC = /^\/media\/[a-f0-9-]{36}\.webp$/;
 
 export function slugify(name: string) {
   return name
@@ -24,7 +22,7 @@ function parseImages(raw: string): ProductImage[] | null {
     if (!Array.isArray(list)) return null;
     const out: ProductImage[] = [];
     for (const i of list) {
-      if (!i || typeof i.src !== "string" || !MEDIA_SRC.test(i.src)) return null;
+      if (!i || typeof i.src !== "string" || !photoName(i.src)) return null;
       const width = Math.round(Number(i.width));
       const height = Math.round(Number(i.height));
       if (!(width > 0 && height > 0)) return null;
@@ -118,7 +116,7 @@ export async function updateProduct(id: string, values: ProductValues) {
     removed.push(...current.images.map((i) => i.src).filter((src) => !next.images.some((i) => i.src === src)));
     return { list: list.map((p) => (p.id === id ? next : p)), result: next };
   });
-  await deleteUploads(removed);
+  await deleteProductPhotos(removed);
   return result;
 }
 
@@ -127,7 +125,7 @@ export async function removeProduct(id: string) {
     const product = list.find((p) => p.id === id);
     return { list: list.filter((p) => p.id !== id), result: product };
   });
-  if (gone) await deleteUploads(gone.images.map((i) => i.src));
+  if (gone) await deleteProductPhotos(gone.images.map((i) => i.src));
 }
 
 export async function setPublished(id: string, published: boolean) {

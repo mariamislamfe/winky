@@ -9,6 +9,7 @@ import { ToteMockup } from "@/components/art/ToteMockup";
 import { DEFAULT_STAGE, PHONE_MODEL_SUGGESTIONS, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
 import { SITE } from "@/config/site";
 import type { Category, Product, ProductImage } from "@/lib/types";
+import { uploadFile } from "@/lib/upload";
 
 type Upload = { id: string; name: string; error?: string };
 
@@ -38,9 +39,12 @@ export function ProductForm({ product }: { product?: Product }) {
       const id = `${file.name}-${Math.random()}`;
       setUploads((u) => [...u, { id, name: file.name }]);
       try {
-        const body = new FormData();
-        body.append("file", file);
-        const res = await fetch("/api/admin/upload", { method: "POST", body });
+        const fileId = await uploadFile("product", file);
+        const res = await fetch("/api/admin/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileId, name: file.name }),
+        });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Upload failed.");
         setImages((imgs) => [...imgs, json as ProductImage]);

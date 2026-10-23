@@ -24,21 +24,16 @@ import { formatPrice } from "@/lib/format";
 import { prepareUpload, UploadError } from "@/lib/image";
 import { clamp, LIMITS, newImageLayer, newTextLayer, normalizeAngle } from "@/lib/layers";
 import type { Category, Customization, DesignLayer } from "@/lib/types";
+import { uploadFile } from "@/lib/upload";
 import { DesignCanvas, GEOMETRY } from "./DesignCanvas";
 
-/** Stores the customer's full-quality file on the server and returns its id. */
+/** Stores the customer's full-quality file and returns its id. */
 async function uploadOriginal(file: File): Promise<string> {
-  const body = new FormData();
-  body.append("file", file);
-  let res: Response;
   try {
-    res = await fetch("/api/designs", { method: "POST", body });
-  } catch {
-    throw new UploadError("Your design couldn't be uploaded. Check your connection and try again.");
+    return await uploadFile("design", file);
+  } catch (err) {
+    throw new UploadError((err as Error).message);
   }
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || !json.fileId) throw new UploadError(json.error ?? "Your design couldn't be uploaded. Try again.");
-  return json.fileId as string;
 }
 
 function initialState(params: URLSearchParams) {

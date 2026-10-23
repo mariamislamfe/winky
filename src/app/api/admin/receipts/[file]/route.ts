@@ -1,5 +1,5 @@
 import { isAdmin } from "@/lib/server/auth";
-import { readReceipt } from "@/lib/server/designs";
+import { contentTypeOf, readReceipt } from "@/lib/server/designs";
 
 /** InstaPay transfer screenshots, for the dashboard only. */
 export async function GET(_request: Request, { params }: RouteContext<"/api/admin/receipts/[file]">) {
@@ -8,6 +8,6 @@ export async function GET(_request: Request, { params }: RouteContext<"/api/admi
   const data = await readReceipt(file);
   if (!data) return new Response("Not found", { status: 404 });
   return new Response(new Uint8Array(data), {
-    headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=3600" },
+    headers: { "Content-Type": contentTypeOf(file), "Cache-Control": "private, max-age=3600" },
   });
 }
