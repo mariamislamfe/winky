@@ -1,7 +1,5 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import {
   CUSTOM_TEXT,
   MAX_LAYERS,
@@ -18,32 +16,27 @@ import { clamp, LIMITS } from "@/lib/layers";
 import { storefrontProducts } from "@/lib/store-products";
 import type { CartLine, Customization, DepositStatus, DesignLayer, Order, OrderCustomer, OrderLine, OrderStatus } from "@/lib/types";
 import { designExists, receiptExists } from "./designs";
-import { DATA_DIR, readProducts, replaceFile } from "./store-fs";
+import { readProducts } from "./store";
+import { db } from "./supabase";
 
-const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
+/**
+ * Orders live in the `orders` table: the order as JSON, plus a database
+ * counter that hands out the WK-1001, WK-1002… numbers without clashes.
+ */
+type OrderRow = { id: string; number: number; data: Order };
+const fromRow = (row: OrderRow): Order => ({ ...row.data, id: row.id, number: `WK-${row.number}` });
 
+/** Newest first. */
 export async function readOrders(): Promise<Order[]> {
-  try {
-    const parsed = JSON.parse(await fs.readFile(ORDERS_FILE, "utf8"));
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw err;
-  }
+  const { data, error } = await db().from("orders").select("id, number, data").order("number", { ascending: false });
+  if (error) throw new Error(`Couldn't load orders: ${error.message}`);
+  return (data as OrderRow[]).map(fromRow);
 }
 
-let queue: Promise<unknown> = Promise.resolve();
-function mutateOrders<T>(fn: (list: Order[]) => { list: Order[]; result: T }) {
-  const run = queue.then(async () => {
-    const { list, result } = fn(await readOrders());
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const tmp = `${ORDERS_FILE}.${process.pid}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(list, null, 2), "utf8");
-    await replaceFile(tmp, ORDERS_FILE);
-    return result;
-  });
-  queue = run.catch(() => undefined);
-  return run;
+export async function readOrder(id: string): Promise<Order | null> {
+  const { data, error } = await db().from("orders").select("id, number, data").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Couldn't load the order: ${error.message}`);
+  return data ? fromRow(data as OrderRow) : null;
 }
 
 // ── Validation ───────────────────────────────────────────────────
@@ -126,15 +119,15 @@ async function cleanCustom(c: Customization, category: "tote" | "case"): Promise
   return { baseId: c.baseId, layers };
 }
 
-// Basic guard against bots flooding the order list.
-const recent = new Map<string, number[]>();
-function allowOrder(key: string) {
-  const now = Date.now();
-  const list = (recent.get(key) ?? []).filter((t) => now - t < 60 * 60 * 1000);
-  if (list.length >= 10) return false;
-  list.push(now);
-  recent.set(key, list);
-  return true;
+// Basic guard against bots flooding the order list: 10 orders per device per hour.
+async function allowOrder(key: string) {
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count, error } = await db()
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("client_key", key)
+    .gte("created_at", since);
+  return error ? true : (count ?? 0) < 10;
 }
 
 export async function createOrder(
@@ -149,7 +142,7 @@ export async function createOrder(
   if (payer.length < 2) errors.payer = "Enter the name or InstaPay number you paid from.";
   if (!(await receiptExists(receiptFileId))) errors.receipt = "Upload a screenshot of your InstaPay transfer.";
   if (Object.keys(errors).length) return { errors };
-  if (!allowOrder(clientKey)) return { errors: { form: "Too many orders from this device. Try again in a while or contact us." } };
+  if (!(await allowOrder(clientKey))) return { errors: { form: "Too many orders from this device. Try again in a while or contact us." } };
 
   const lines = Array.isArray(input.lines) ? input.lines.slice(0, 30) : [];
   if (!lines.length) return { errors: { form: "Your bag is empty." } };
@@ -192,48 +185,49 @@ export async function createOrder(
   const subtotal = out.reduce((n, l) => n + l.unitPrice * l.quantity, 0);
   const total = subtotal + (SHIPPING_FEE ?? 0);
   const now = new Date().toISOString();
-  const order = await mutateOrders((list) => {
-    const last = list.reduce((m, o) => Math.max(m, Number(o.number.replace(/\D/g, "")) || 1000), 1000);
-    const created: Order = {
-      id: randomUUID(),
-      number: `WK-${last + 1}`,
-      createdAt: now,
-      updatedAt: now,
-      status: "new",
-      paymentMethod: "instapay-deposit",
-      deposit: { amount: depositFor(total), status: "pending", payer, reference, receiptFileId },
-      codBalance: total - depositFor(total),
-      customer,
-      lines: out,
-      subtotal,
-      shipping: SHIPPING_FEE,
-      total,
-      currency: SITE.currency,
-      zinkRef: "",
-      adminNote: "",
-    };
-    return { list: [created, ...list], result: created };
-  });
-  return { order };
+  const draft: Order = {
+    id: randomUUID(),
+    // Set from the database counter when the order is saved
+    number: "",
+    createdAt: now,
+    updatedAt: now,
+    status: "new",
+    paymentMethod: "instapay-deposit",
+    deposit: { amount: depositFor(total), status: "pending", payer, reference, receiptFileId },
+    codBalance: total - depositFor(total),
+    customer,
+    lines: out,
+    subtotal,
+    shipping: SHIPPING_FEE,
+    total,
+    currency: SITE.currency,
+    zinkRef: "",
+    adminNote: "",
+  };
+  const { data, error } = await db()
+    .from("orders")
+    .insert({ id: draft.id, client_key: clientKey, created_at: now, data: draft })
+    .select("id, number, data")
+    .single();
+  if (error) return { errors: { form: "Your order couldn't be saved. Try again in a minute; nothing was charged twice." } };
+  return { order: fromRow(data as OrderRow) };
 }
 
 export async function updateOrder(
   id: string,
   patch: { status?: OrderStatus; depositStatus?: DepositStatus; zinkRef?: string; adminNote?: string },
 ) {
-  return mutateOrders((list) => {
-    const i = list.findIndex((o) => o.id === id);
-    if (i < 0) return { list, result: null };
-    const next: Order = {
-      ...list[i],
-      ...(patch.status ? { status: patch.status } : {}),
-      ...(patch.depositStatus ? { deposit: { ...list[i].deposit, status: patch.depositStatus } } : {}),
-      ...(patch.zinkRef !== undefined ? { zinkRef: patch.zinkRef.trim().slice(0, 80) } : {}),
-      ...(patch.adminNote !== undefined ? { adminNote: patch.adminNote.trim().slice(0, 2000) } : {}),
-      updatedAt: new Date().toISOString(),
-    };
-    const copy = [...list];
-    copy[i] = next;
-    return { list: copy, result: next };
-  });
+  const current = await readOrder(id);
+  if (!current) return null;
+  const next: Order = {
+    ...current,
+    ...(patch.status ? { status: patch.status } : {}),
+    ...(patch.depositStatus ? { deposit: { ...current.deposit, status: patch.depositStatus } } : {}),
+    ...(patch.zinkRef !== undefined ? { zinkRef: patch.zinkRef.trim().slice(0, 80) } : {}),
+    ...(patch.adminNote !== undefined ? { adminNote: patch.adminNote.trim().slice(0, 2000) } : {}),
+    updatedAt: new Date().toISOString(),
+  };
+  const { error } = await db().from("orders").update({ data: next }).eq("id", id);
+  if (error) throw new Error(`Couldn't save the order: ${error.message}`);
+  return next;
 }

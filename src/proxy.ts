@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_COOKIE } from "@/lib/server/auth";
-import { readProducts } from "@/lib/server/store-fs";
+import { readProducts } from "@/lib/server/store";
 import { storefrontProducts } from "@/lib/store-products";
 
 /**

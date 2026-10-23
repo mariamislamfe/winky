@@ -1,5 +1,5 @@
 import { isAdmin } from "@/lib/server/auth";
-import { readDesign } from "@/lib/server/designs";
+import { contentTypeOf, readDesign } from "@/lib/server/designs";
 
 /** Customer artwork, for the dashboard only. `?download=name.png` saves it as a file. */
 export async function GET(request: Request, { params }: RouteContext<"/api/admin/designs/[file]">) {
@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/admin
   const safeName = download ? download.replace(/[^\w.\- ]+/g, "_").slice(0, 80) : null;
   return new Response(new Uint8Array(data), {
     headers: {
-      "Content-Type": "image/png",
+      "Content-Type": contentTypeOf(file),
       "Cache-Control": "private, max-age=3600",
       ...(safeName ? { "Content-Disposition": `attachment; filename="${safeName}"` } : {}),
     },

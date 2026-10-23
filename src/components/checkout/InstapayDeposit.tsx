@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { depositFor, INSTAPAY, instapayReady } from "@/config/payments";
 import { formatPrice } from "@/lib/format";
+import { uploadFile } from "@/lib/upload";
 
 function Copy({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -60,12 +61,7 @@ export function InstapayDeposit({
     const preview = URL.createObjectURL(file);
     setReceipt({ busy: true, preview });
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/receipts", { method: "POST", body });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.fileId) throw new Error(json.error ?? "The screenshot didn't upload. Try again.");
-      setReceipt({ fileId: json.fileId, preview });
+      setReceipt({ fileId: await uploadFile("receipt", file), preview });
     } catch (e) {
       setReceipt({ error: (e as Error).message, preview });
     }

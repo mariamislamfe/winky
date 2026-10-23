@@ -12,7 +12,7 @@ import { CATEGORY_LABEL } from "@/lib/catalog";
 import { describePlacement, layerTitle } from "@/lib/describe";
 import { formatDate, formatPrice } from "@/lib/format";
 import { requireAdmin } from "@/lib/server/auth";
-import { readOrders } from "@/lib/server/orders";
+import { readOrder } from "@/lib/server/orders";
 import type { Order, OrderLine } from "@/lib/types";
 
 export const metadata = { title: "Order" };
@@ -33,7 +33,7 @@ export default function OrderPage({ params }: PageProps<"/admin/orders/[id]">) {
 async function OrderDetail({ params }: { params: PageProps<"/admin/orders/[id]">["params"] }) {
   await requireAdmin();
   const { id } = await params;
-  const order = (await readOrders()).find((o) => o.id === id);
+  const order = await readOrder(id);
   if (!order) notFound();
   const status = ORDER_STATUSES.find((s) => s.id === order.status)!;
   const deposit = DEPOSIT_STATUSES.find((s) => s.id === order.deposit.status)!;
@@ -180,7 +180,7 @@ function LineCard({ line, index, order }: { line: OrderLine; index: number; orde
                     </p>
                     {layer.kind === "image" && layer.fileId && (
                       <a
-                        href={`/api/admin/designs/${layer.fileId}?download=${encodeURIComponent(`${order.number}-${layer.name.replace(/\.[^.]+$/, "")}.png`)}`}
+                        href={`/api/admin/designs/${layer.fileId}?download=${encodeURIComponent(`${order.number}-${layer.name.replace(/\.[^.]+$/, "")}.${layer.fileId.split(".").pop()}`)}`}
                         className="rounded-full bg-grape px-3 py-1.5 text-xs font-bold text-milk"
                       >
                         Download original

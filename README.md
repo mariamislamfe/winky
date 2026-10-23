@@ -6,6 +6,7 @@ Next.js 16 (App Router, Cache Components), TypeScript, Tailwind CSS 4, GSAP + Sc
 
 ```bash
 npm install
+npm run supabase:setup   # once, see "Supabase" below
 npm run dev      # http://localhost:3000
 npm run lint
 npm run build && npm start
@@ -16,17 +17,17 @@ npm run build && npm start
 Add, edit, publish/unpublish, reorder and delete your products. Each product has photos, a name, a price, a short line, a description, a showcase color, a "New" flag and, for cases, the phone models it fits. Saving updates the store immediately.
 
 - **Login:** one password, set as `ADMIN_PASSWORD` in `.env.local` locally (already created, change it) and in your host's environment in production. Sessions last 7 days; changing the password signs everyone out.
-- **Photos:** PNG, JPG or WebP up to 15 MB. They're auto-rotated, resized to 2000 px and converted to WebP. **Transparent PNG cut-outs** float freely on the homepage. Regular photos get a white rounded frame.
-- **Where data lives:** `data/products.json` and `data/uploads/` (or the folder in `WINKY_DATA_DIR`). This needs a server with a persistent disk: your own computer, a VPS, or Docker with a volume. **Back this folder up.** It's git-ignored. On serverless hosts like Vercel the disk is temporary, so swap `src/lib/server/store-fs.ts` for a database and object storage. Nothing else needs to change.
+- **Photos:** PNG, JPG or WebP up to 15 MB. They're auto-rotated, resized to 2000 px and converted to WebP. **Transparent PNG cut-outs** float freely on the homepage. Regular photos get rounded corners.
+- **Where data lives:** Supabase (see below).
 - **Sample products:** until you publish your first real product, the store shows 14 illustrated sample designs (`src/data/samples.ts`, prices are placeholders). As soon as one real product is live, every sample disappears automatically. If you unpublish everything, they come back.
 
 ## Orders (`/admin/orders`)
 
-Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. Each order is saved to `data/orders.json` and shows up in the dashboard right away with:
+Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. Each order is saved in Supabase and shows up in the dashboard right away with:
 
 - Customer name, mobile (normalized to 01xxxxxxxxx), governorate, city, address and notes, with copy buttons for entering them on Zink.
 - Every item with its phone model, quantity and price (recalculated on the server from the catalog, never trusted from the browser).
-- For custom items: a mockup, each layer's exact placement, the customer's **original file** (stored full quality in `data/designs/`), and **Download print file**, a transparent PNG of the whole print area with every layer in place (3000 px wide, or 300 DPI once `PRINT_AREA_CM` is set).
+- For custom items: a mockup, each layer's exact placement, the customer's **original file** (stored exactly as uploaded), and **Download print file**, a transparent PNG of the whole print area with every layer in place (3000 px wide, or 300 DPI once `PRINT_AREA_CM` is set).
 - Status (New, Placed on Zink, Shipped, Delivered, Cancelled), the Zink order number and a private note.
 
 Placing the order on Zink is still manual until Zink offers an API.
@@ -35,14 +36,35 @@ Placing the order on Zink is still manual until Zink offers an API.
 
 Every order needs a fixed **InstaPay deposit** (EGP 100, `src/config/payments.ts`); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
 
+## Supabase
+
+Everything the store saves lives in Supabase, so the site itself keeps nothing on disk:
+
+| What | Where in Supabase |
+| --- | --- |
+| Products | `products` table (one row per product, as JSON, in shop order) |
+| Orders | `orders` table (the `number` column hands out WK-1001, WK-1002…) |
+| Product photos | `products` storage bucket (public) |
+| Customers' original designs | `designs` bucket (private) |
+| InstaPay screenshots | `receipts` bucket (private) |
+
+Only the server talks to Supabase, with the **service role key**. Row level security is on with no policies, so the public key can't read anything. Customers' and dashboard uploads go straight from the browser to storage with one-time signed links from `/api/uploads`; the buckets only accept PNG, JPG and WebP within the size limits.
+
+**Setting up a Supabase project:**
+
+1. In Supabase, open **SQL Editor**, paste `supabase/schema.sql` and press **Run**.
+2. Put the project URL, publishable key and service role key in `.env.local` (see `.env.example`).
+3. Run `npm run supabase:setup`. It creates the storage buckets and checks the tables. On first run it also imports products from an old local `data/` folder, if there is one.
+
+Supabase backs up the database daily on paid plans. On the free plan, export the tables now and then (Table editor → Export to CSV).
+
 ## Deploying
 
-This store saves products, photos, orders and customer files to disk, so it needs a **Node.js server with a persistent disk**: a VPS (DigitalOcean, Hetzner, Hostinger VPS…), or Railway/Render/Fly with a mounted volume. **Not Vercel or Netlify**: their disks are wiped, so products and orders would disappear.
+Any Node.js host works, including **Vercel**: nothing is stored on the server.
 
-1. Copy the whole project to the server, **including the `data/` folder** (it's git-ignored, so copy it separately): it holds your products and photos.
-2. Set the environment variables from `.env.example`: a strong `ADMIN_PASSWORD`, `SITE_URL=https://your-domain`, and `WINKY_DATA_DIR` if the volume lives elsewhere.
-3. `npm ci && npm run build && npm start` (port 3000; put it behind HTTPS, e.g. Nginx/Caddy or the host's proxy). The dashboard login only works over HTTPS in production.
-4. Back up the data folder regularly.
+1. Push the project to GitHub and import it in Vercel (or your host).
+2. Set the environment variables from `.env.example`: a strong `ADMIN_PASSWORD`, `SITE_URL=https://your-domain`, and the three Supabase variables.
+3. Deploy. The dashboard login only works over HTTPS in production, which Vercel provides.
 
 ## Still to set
 
@@ -58,11 +80,12 @@ This store saves products, photos, orders and customer files to disk, so it need
 src/
   app/(site)/          storefront: / · /shop · /shop/[slug] · /customize · /checkout (cash on delivery)
   app/admin/           dashboard: login, products, orders (+ server actions)
-  app/api/admin/upload product photo upload (sharp → WebP)
-  app/api/designs      customer artwork upload (originals for printing)
-  app/media/[file]     serves uploaded photos
+  app/api/uploads      one-time upload links (designs, receipts, dashboard photos)
+  app/api/admin/       photo processing (sharp → WebP), private design/receipt files
   config/              site switches, dashboard options, custom pricing, customization options
-  lib/server/          auth, file storage, cached catalog reads, product validation
+  lib/server/          auth, Supabase storage, cached catalog reads, product + order validation
+supabase/schema.sql    database tables
+scripts/               supabase:setup (buckets + import)
   lib/                 cart store, catalog helpers, checkout adapter, gsap setup
   components/
     admin/             dashboard UI (product form, row actions, login)

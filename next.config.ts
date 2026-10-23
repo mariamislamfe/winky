@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
+const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    // Product photos are stored in Supabase Storage (public "products" bucket)
+    remotePatterns: supabase
+      ? [{ protocol: "https", hostname: supabase.hostname, pathname: "/storage/v1/object/public/products/**" }]
+      : [],
+  },
   async headers() {
     return [
       {
