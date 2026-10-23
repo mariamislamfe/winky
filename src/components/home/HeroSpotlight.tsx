@@ -47,8 +47,9 @@ export function HeroSpotlight() {
 
   return (
     <div
-      // On phones the shelf only takes the height left under the hero buttons (~444px down)
-      className="hero-shelf absolute right-[4vw] bottom-[10.4vw] z-20 flex aspect-[4/5] h-[clamp(96px,calc(100svh_-_10.4vw_-_444px),min(36svh,70vw))] items-end justify-center md:right-[7vw] md:aspect-auto md:h-[min(58svh,33vw)] md:w-[30vw]"
+      // On phones the shelf is centered, lifted --lift above the bottom, and only takes
+      // the height left under the hero buttons (~444px down)
+      className="hero-shelf absolute bottom-(--lift) left-1/2 z-20 flex aspect-[4/5] h-[clamp(96px,calc(100svh_-_var(--lift)_-_444px),min(40svh,76vw))] -translate-x-1/2 items-end justify-center [--lift:11vw] [@media(min-height:740px)]:[--lift:22vw] md:right-[7vw] md:bottom-[10.4vw] md:left-auto md:aspect-auto md:h-[min(58svh,33vw)] md:w-[30vw] md:translate-x-0"
       onPointerEnter={() => setPaused(true)}
       onPointerLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -96,7 +97,7 @@ export function HeroSpotlight() {
           animate={{ scale: 1, rotate: -6 }}
           exit={reduce ? undefined : { scale: 0, rotate: 10, transition: { duration: 0.15 } }}
           transition={{ type: "spring", stiffness: 420, damping: 18, delay: reduce ? 0 : 0.15 }}
-          className="absolute top-[6%] right-[55%] z-10 w-max max-w-[9.5rem] origin-bottom-right rounded-2xl bg-butter text-grape shadow-[0_3px_0_rgb(43_17_64/0.25)] md:right-auto md:-left-[14%] md:w-auto md:max-w-[70%]"
+          className="absolute top-[6%] right-[55%] z-10 w-max max-w-[min(9.5rem,40vw)] origin-bottom-right rounded-2xl bg-butter text-grape shadow-[0_3px_0_rgb(43_17_64/0.25)] md:right-auto md:-left-[14%] md:w-auto md:max-w-[70%]"
         >
           <Link href={`/shop/${product.slug}`} className="block min-h-11 rounded-2xl px-3 py-2.5 md:px-4">
             <span className="block text-xs leading-tight font-bold md:text-sm">{product.name}</span>
