@@ -105,7 +105,7 @@ export function ProductForm({ product }: { product?: Product }) {
         <FieldError msg={errors.category} />
       </Card>
 
-      <Card title="Photos" hint="The first photo is the main one. Transparent PNG cut-outs look best on the homepage; regular photos get a white frame.">
+      <Card title="Photos" hint="The first photo is the main one. Shoot the product on a plain white background (or upload a PNG with no background): the white is removed and the photo cropped to the product automatically. Use the original photo, not one sent through WhatsApp, at least 1200 px tall.">
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {images.map((img, i) => (
             <li key={img.src} className="relative overflow-hidden rounded-2xl ring-2 ring-grape/10" style={{ background: stage }}>

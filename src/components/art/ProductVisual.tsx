@@ -70,6 +70,7 @@ export function ProductVisual({
       width={photo.width}
       height={photo.height}
       sizes={sizes}
+      quality={90}
       priority={priority}
       draggable={false}
       className={`object-contain ${photo.cutout ? "" : "rounded-[1.25rem]"} ${className}`}

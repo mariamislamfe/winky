@@ -5,6 +5,8 @@ const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   images: {
+    // 90 for product photos (ProductVisual), 75 for everything else
+    qualities: [75, 90],
     // Product photos are stored in Supabase Storage (public "products" bucket)
     remotePatterns: supabase
       ? [{ protocol: "https", hostname: supabase.hostname, pathname: "/storage/v1/object/public/products/**" }]
