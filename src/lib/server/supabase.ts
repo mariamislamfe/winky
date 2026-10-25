@@ -28,6 +28,10 @@ export function db() {
   }
   client ??= createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Never let Next's fetch cache keep database answers: it isn't cleared by updateTag
+    // and outlives deploys, so dashboard edits could stay invisible for up to 15 minutes.
+    // Caching is done one level up, in getStoreProducts ("use cache" + the products tag).
+    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
   });
   return client;
 }
