@@ -1,4 +1,3 @@
-import { PHONE_MODEL_SUGGESTIONS } from "@/config/catalog";
 import type { Artwork, Category, Product } from "@/lib/types";
 
 /**
@@ -20,7 +19,6 @@ type Sample = {
 };
 
 const PRICE: Record<Category, number> = { tote: 45000, case: 35000 };
-const MODELS = PHONE_MODEL_SUGGESTIONS.slice(0, 6);
 
 const SAMPLES: Sample[] = [
   // ── Tote bags ────────────────────────────────────────────────
@@ -177,7 +175,8 @@ export const SAMPLE_PRODUCTS: Product[] = SAMPLES.map((s) => ({
   id: `sample-${s.slug}`,
   price: PRICE[s.category],
   images: [],
-  models: s.category === "case" ? [...MODELS] : [],
+  // Cases fit every listed model
+  models: [],
   isNew: Boolean(s.isNew),
   published: true,
   createdAt: "",

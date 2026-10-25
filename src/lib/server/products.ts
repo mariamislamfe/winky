@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { DEFAULT_STAGE, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
+import { CASE_DESCRIPTION, DEFAULT_STAGE, PRODUCT_IMAGE } from "@/config/catalog";
 import { luminance } from "@/lib/color";
 import type { Category, Product, ProductImage } from "@/lib/types";
 import { deleteProductPhotos, mutateProducts, photoName, readProducts } from "./store";
@@ -41,10 +41,16 @@ export function parseProductForm(form: FormData) {
   const category = String(form.get("category") ?? "") as Category;
   const priceRaw = String(form.get("price") ?? "").replace(",", ".").trim();
   const tagline = String(form.get("tagline") ?? "").trim().slice(0, 120);
-  const description = String(form.get("description") ?? "").trim().slice(0, 2000);
-  const stageRaw = String(form.get("stage") ?? "");
+  const descriptionRaw = String(form.get("description") ?? "").trim().slice(0, 2000);
+  // Pasting the standard case text is the same as leaving it empty (and keeps it in sync with config)
+  const description = category === "case" && descriptionRaw.replace(/\s+/g, " ") === CASE_DESCRIPTION ? "" : descriptionRaw;
+  const stageRaw = String(form.get("stage") ?? "").toUpperCase();
   const images = parseImages(String(form.get("images") ?? "[]"));
-  const models = [...new Set(form.getAll("models").map((m) => String(m).trim().slice(0, 40)).filter(Boolean))].slice(0, 40);
+  // Empty list = the case fits every model on the list (config/catalog.ts)
+  const allModels = form.get("allModels") === "on";
+  const models = allModels
+    ? []
+    : [...new Set(form.getAll("models").map((m) => String(m).trim().slice(0, 60)).filter(Boolean))].slice(0, 300);
 
   if (!name) errors.name = "Give the product a name.";
   if (category !== "tote" && category !== "case") errors.category = "Choose tote bag or phone case.";
@@ -53,11 +59,12 @@ export function parseProductForm(form: FormData) {
   if (!images) errors.images = "Something went wrong with the photos. Remove them and upload again.";
   else if (images.length === 0) errors.images = "Add at least one photo.";
   else if (images.length > PRODUCT_IMAGE.maxPerProduct) errors.images = `Use up to ${PRODUCT_IMAGE.maxPerProduct} photos.`;
-  if (category === "case" && models.length === 0) errors.models = "Pick at least one phone model this case fits.";
+  if (category === "case" && !allModels && models.length === 0) {
+    errors.models = "Pick at least one phone model this case fits, or turn on “Fits every model”.";
+  }
 
-  const stage = STAGE_COLORS.some((c) => c.hex === stageRaw)
-    ? stageRaw
-    : DEFAULT_STAGE[category === "case" ? "case" : "tote"];
+  // Any colour: the preset ones or one added with the colour picker
+  const stage = /^#[0-9A-F]{6}$/.test(stageRaw) ? stageRaw : DEFAULT_STAGE[category === "case" ? "case" : "tote"];
 
   return {
     errors,

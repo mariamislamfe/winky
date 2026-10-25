@@ -1,5 +1,4 @@
 import { PLAIN_BASES } from "@/config/customization";
-import { PHONE_MODEL_SUGGESTIONS } from "@/config/catalog";
 import { PRICING } from "@/config/pricing";
 import type { CartLine, Category, Product } from "./types";
 
@@ -42,7 +41,8 @@ export const CUSTOM_BASES: Record<Category, Product> = {
     images: [],
     stage: "#FFD1E4",
     stageInk: "#2B1140",
-    models: [...PHONE_MODEL_SUGGESTIONS],
+    // Every listed model (lib/models.ts)
+    models: [],
     isNew: false,
     published: true,
     createdAt: "",

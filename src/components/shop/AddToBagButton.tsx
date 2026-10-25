@@ -41,7 +41,7 @@ export function AddToBagButton({
     return () => clearTimeout(t);
   }, [added]);
 
-  if (product.category === "case" && product.models.length > 0 && !variant && !custom && !product.customOnly) {
+  if (product.category === "case" && !variant && !custom && !product.customOnly) {
     return (
       <Link href={`/shop/${product.slug}`} className={`btn ${className}`}>
         Choose your model <span className="wink-eye" aria-hidden />

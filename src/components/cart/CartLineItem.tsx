@@ -9,6 +9,7 @@ import { linePrice } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { describeCustom } from "@/lib/describe";
 import { formatPrice } from "@/lib/format";
+import { modelLabel } from "@/lib/models";
 import type { CartLine } from "@/lib/types";
 
 export function CartLineItem({ line, onNavigate }: { line: CartLine; onNavigate?: () => void }) {
@@ -42,7 +43,7 @@ export function CartLineItem({ line, onNavigate }: { line: CartLine; onNavigate?
             {unit == null ? "Price TBA" : formatPrice(unit * line.quantity)}
           </span>
         </div>
-        {line.variant && <p className="text-sm opacity-75">For {line.variant}</p>}
+        {line.variant && <p className="text-sm opacity-75">For {modelLabel(line.variant)}</p>}
         {line.custom && (
           <dl className="text-sm leading-snug opacity-75">
             {describeCustom(line.custom, product.category).map((r) => (

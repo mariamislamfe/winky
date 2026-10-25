@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/server/auth";
+import { readCustomStageColors } from "@/lib/server/settings";
 
 export const metadata = { title: "Add product" };
 
@@ -23,5 +24,5 @@ export default function NewProductPage() {
 
 async function Guarded() {
   await requireAdmin();
-  return <ProductForm />;
+  return <ProductForm customColors={await readCustomStageColors()} />;
 }

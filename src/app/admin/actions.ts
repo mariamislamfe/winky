@@ -13,6 +13,7 @@ import {
   updateProduct,
   type FieldErrors,
 } from "@/lib/server/products";
+import { addCustomStageColor, HEX_COLOR, removeCustomStageColor } from "@/lib/server/settings";
 
 export type LoginState = { error?: string };
 
@@ -51,6 +52,19 @@ export async function saveProduct(_prev: SaveState, form: FormData): Promise<Sav
   }
   updateTag(PRODUCTS_TAG);
   redirect(`/admin?saved=${encodeURIComponent(value.name)}`);
+}
+
+/** Saves a showcase colour picked in the dashboard so every product can use it. */
+export async function addStageColor(hex: string) {
+  await requireAdmin();
+  const color = String(hex).toUpperCase();
+  if (!HEX_COLOR.test(color)) return null;
+  return addCustomStageColor(color);
+}
+
+export async function removeStageColor(hex: string) {
+  await requireAdmin();
+  return removeCustomStageColor(String(hex).toUpperCase());
 }
 
 export async function deleteProduct(id: string) {

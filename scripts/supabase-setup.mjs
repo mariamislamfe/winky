@@ -1,6 +1,6 @@
 // One-time Supabase setup: npm run supabase:setup
 //
-// 1. Creates the storage buckets (products: public; designs, receipts: private).
+// 1. Creates the storage buckets (products: public; designs, receipts, settings: private).
 // 2. Checks the tables from supabase/schema.sql exist.
 // 3. If the products table is empty and a local data/ folder exists (from the
 //    file-based version of the store), copies those products and photos in.
@@ -24,10 +24,12 @@ const BUCKETS = [
   { id: "products", public: true, fileSizeLimit: 15 * MB },
   { id: "designs", public: false, fileSizeLimit: 15 * MB },
   { id: "receipts", public: false, fileSizeLimit: 10 * MB },
+  // store settings saved from the dashboard (custom showcase colours)
+  { id: "settings", public: false, fileSizeLimit: 64 * 1024, types: ["application/json"] },
 ];
 
 for (const b of BUCKETS) {
-  const options = { public: b.public, fileSizeLimit: b.fileSizeLimit, allowedMimeTypes: TYPES };
+  const options = { public: b.public, fileSizeLimit: b.fileSizeLimit, allowedMimeTypes: b.types ?? TYPES };
   const { error: missing } = await db.storage.getBucket(b.id);
   const { error } = missing ? await db.storage.createBucket(b.id, options) : await db.storage.updateBucket(b.id, options);
   if (error) throw new Error(`Bucket ${b.id}: ${error.message}`);

@@ -81,7 +81,8 @@ async function ProductList({ searchParams }: { searchParams: PageProps<"/admin">
                 <p className="truncate text-lg font-semibold">{p.name}</p>
                 <p className="text-sm opacity-75">
                   {CATEGORY_LABEL[p.category].one}, {formatPrice(p.price)}
-                  {p.category === "case" && `, ${p.models.length} ${p.models.length === 1 ? "model" : "models"}`}
+                  {p.category === "case" &&
+                    (p.models.length ? `, ${p.models.length} ${p.models.length === 1 ? "model" : "models"}` : ", all models")}
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.published ? "bg-mint" : "bg-grape/10"}`}>

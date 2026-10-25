@@ -8,17 +8,21 @@ import { ProductVisual } from "@/components/art/ProductVisual";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { CATEGORY_LABEL } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
+import { descriptionFor, modelsFor } from "@/lib/models";
 import type { Product } from "@/lib/types";
 import { AddToBagButton } from "./AddToBagButton";
+import { ModelPicker } from "./ModelPicker";
 
 export function ProductDetail({ product }: { product: Product }) {
   const reduce = useReducedMotion();
   const [photo, setPhoto] = useState(0);
-  const [model, setModel] = useState<string>(product.models.length === 1 ? product.models[0] : "");
+  const models = modelsFor(product);
+  const [model, setModel] = useState<string>(models.length === 1 ? models[0] : "");
   const [qty, setQty] = useState(1);
   const [showModelHint, setShowModelHint] = useState(false);
   const isCase = product.category === "case";
-  const needsModel = isCase && product.models.length > 0;
+  const needsModel = isCase;
+  const description = descriptionFor(product);
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-10 px-5 pt-[calc(var(--header-h)+2rem)] pb-16 md:px-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-[calc(var(--header-h)+3rem)]">
@@ -91,9 +95,9 @@ export function ProductDetail({ product }: { product: Product }) {
         <h1 className="font-display mt-4 text-[clamp(2.8rem,6vw,5rem)] leading-[0.9]">{product.name}</h1>
         <p className="mt-4 text-2xl font-semibold tabular-nums">{formatPrice(product.price)}</p>
         {product.tagline && <p className="mt-6 max-w-[48ch] text-xl font-medium">{product.tagline}</p>}
-        {product.description && (
+        {description && (
           <div className="mt-3 max-w-[56ch] space-y-3 text-lg opacity-85">
-            {product.description.split(/\n{2,}/).map((para, i) => (
+            {description.split(/\n{2,}/).map((para, i) => (
               <p key={i} className="whitespace-pre-line">
                 {para}
               </p>
@@ -106,26 +110,15 @@ export function ProductDetail({ product }: { product: Product }) {
             <legend className="font-semibold">
               Phone model <span className="font-normal opacity-70">(required)</span>
             </legend>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {product.models.map((m) => (
-                <label key={m} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="model"
-                    value={m}
-                    checked={model === m}
-                    onChange={() => {
-                      setModel(m);
-                      setShowModelHint(false);
-                    }}
-                    className="peer sr-only"
-                  />
-                  <span className="flex h-11 items-center rounded-full px-4 font-medium ring-2 ring-grape/15 transition-all duration-200 peer-checked:bg-grape peer-checked:text-milk peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape hover:ring-grape/40">
-                    {m}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <ModelPicker
+              models={models}
+              value={model}
+              invalid={showModelHint}
+              onChange={(m) => {
+                setModel(m);
+                setShowModelHint(false);
+              }}
+            />
             {showModelHint && (
               <p role="alert" className="mt-2 font-semibold text-gum-deep">
                 Pick your phone model first.

@@ -17,12 +17,14 @@ import {
   UPLOAD,
   type TextColorId,
 } from "@/config/customization";
-import { PHONE_MODEL_SUGGESTIONS } from "@/config/catalog";
+import { PHONE_MODELS } from "@/config/catalog";
+import { ModelPicker } from "@/components/shop/ModelPicker";
 import { CUSTOM_BASES } from "@/lib/catalog";
 import { describePlacement, layerTitle } from "@/lib/describe";
 import { formatPrice } from "@/lib/format";
 import { prepareUpload, UploadError } from "@/lib/image";
 import { clamp, LIMITS, newImageLayer, newTextLayer, normalizeAngle } from "@/lib/layers";
+import { modelLabel } from "@/lib/models";
 import type { Category, Customization, DesignLayer } from "@/lib/types";
 import { uploadFile } from "@/lib/upload";
 import { DesignCanvas, GEOMETRY } from "./DesignCanvas";
@@ -144,9 +146,9 @@ export function Customizer() {
       : null;
 
   return (
-    <div className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)] gap-8 px-5 pb-16 md:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
-      {/* Canvas */}
-      <div className="sticky top-0 z-20 -mx-5 bg-milk/95 px-5 pt-3 pb-3 backdrop-blur-sm lg:top-24 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+    <div className="group/cz mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)] gap-8 px-5 pb-16 md:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
+      {/* Canvas (stops sticking on phones while the model search is in use, so the results have room) */}
+      <div className="sticky top-0 z-20 -mx-5 bg-milk/95 px-5 pt-3 pb-3 backdrop-blur-sm max-lg:group-has-[[role=combobox]:focus]/cz:static lg:top-24 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
         <div className="relative grid h-[44svh] min-h-[280px] place-items-center rounded-[32px] bg-[#FFD1E4] py-8 lg:h-[min(76vh,720px)] lg:rounded-[40px] lg:py-12">
           <span aria-hidden className="pointer-events-none absolute aspect-square h-[78%] rounded-full bg-white/35" />
           <AnimatePresence mode="popLayout" initial={false}>
@@ -452,25 +454,14 @@ export function Customizer() {
 
         {category === "case" && (
           <Step title="Phone model">
-            <div className="flex flex-wrap gap-2">
-              {PHONE_MODEL_SUGGESTIONS.map((m) => (
-                <label key={m} className="cursor-pointer">
-                  <input
-                    type="radio"
-                    name="custom-model"
-                    className="peer sr-only"
-                    checked={model === m}
-                    onChange={() => {
-                      setModel(m);
-                      setHint(null);
-                    }}
-                  />
-                  <span className="flex h-11 items-center rounded-full px-4 font-medium ring-2 ring-grape/15 transition-all peer-checked:bg-grape peer-checked:text-milk peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape hover:ring-grape/40">
-                    {m}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <ModelPicker
+              models={PHONE_MODELS}
+              value={model}
+              onChange={(m) => {
+                setModel(m);
+                setHint(null);
+              }}
+            />
           </Step>
         )}
 
@@ -481,7 +472,7 @@ export function Customizer() {
           </h2>
           <dl className="mt-4 grid gap-1.5">
             <Row k="Color" v={PLAIN_BASES[category].find((b) => b.id === baseId)?.label ?? ""} />
-            {category === "case" && <Row k="Model" v={model || "Not chosen"} muted={!model} />}
+            {category === "case" && <Row k="Model" v={model ? modelLabel(model) : "Not chosen"} muted={!model} />}
           </dl>
           {layers.length === 0 ? (
             <p className="mt-3 opacity-60">No design yet.</p>

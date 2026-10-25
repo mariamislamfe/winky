@@ -144,7 +144,7 @@ export function CaseFan() {
             {/* Actions: own full-width row on mobile, under the details on desktop */}
             <div className="col-span-2 md:col-span-1 md:col-start-2 md:row-start-3 md:self-start">
               <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                {product.models.length > 0 ? (
+                {product.category === "case" ? (
                   <Link
                     href={`/shop/${product.slug}`}
                     className="btn min-h-11 px-4 text-sm md:min-h-[52px] md:px-6 md:text-base"

@@ -4,6 +4,7 @@ import { AdminBar } from "@/components/admin/AdminBar";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/server/auth";
 import { adminListProducts } from "@/lib/server/products";
+import { readCustomStageColors } from "@/lib/server/settings";
 
 export const metadata = { title: "Edit product" };
 
@@ -23,13 +24,14 @@ export default function EditProductPage({ params }: PageProps<"/admin/products/[
 async function EditForm({ params }: { params: PageProps<"/admin/products/[id]">["params"] }) {
   await requireAdmin();
   const { id } = await params;
-  const product = (await adminListProducts()).find((p) => p.id === id);
+  const [products, customColors] = await Promise.all([adminListProducts(), readCustomStageColors()]);
+  const product = products.find((p) => p.id === id);
   if (!product) notFound();
   return (
     <>
       <h1 className="font-display text-5xl">Edit {product.name}</h1>
       <div className="mt-8">
-        <ProductForm product={product} />
+        <ProductForm product={product} customColors={customColors} />
       </div>
     </>
   );

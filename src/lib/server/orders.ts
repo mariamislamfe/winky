@@ -13,6 +13,7 @@ import { PRICING } from "@/config/pricing";
 import { SITE } from "@/config/site";
 import { findProduct } from "@/lib/catalog";
 import { clamp, LIMITS } from "@/lib/layers";
+import { isOrderableModel } from "@/lib/models";
 import { storefrontProducts } from "@/lib/store-products";
 import type { CartLine, Customization, DepositStatus, DesignLayer, Order, OrderCustomer, OrderLine, OrderStatus } from "@/lib/types";
 import { designExists, receiptExists } from "./designs";
@@ -154,8 +155,8 @@ export async function createOrder(
     if (!product) return { errors: { form: "Something in your bag is no longer available. Remove it and try again." } };
     const quantity = Math.round(num(l.quantity, 1, SITE.maxQuantityPerLine, 1));
     let variant: string | undefined;
-    if (product.category === "case" && product.models.length) {
-      if (!l.variant || !product.models.includes(l.variant)) {
+    if (product.category === "case") {
+      if (!l.variant || !isOrderableModel(product, l.variant)) {
         return { errors: { form: `Choose a phone model for ${product.name} before ordering.` } };
       }
       variant = l.variant;

@@ -16,6 +16,8 @@ export const BUCKETS = {
   designs: "designs",
   /** InstaPay transfer screenshots, private */
   receipts: "receipts",
+  /** Store settings as JSON (custom showcase colours), private */
+  settings: "settings",
 } as const;
 
 let client: SupabaseClient | undefined;

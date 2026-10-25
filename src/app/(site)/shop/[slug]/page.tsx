@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageBlink } from "@/components/layout/PageBlink";
 import { ProductCard } from "@/components/shop/ProductCard";
 import { ProductDetail } from "@/components/shop/ProductDetail";
+import { descriptionFor } from "@/lib/models";
 import { getStoreProducts } from "@/lib/server/catalog-data";
 
 // Cache Components needs at least one param at build time; an empty store
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/shop/[slug]">): P
   if (!product) return {};
   return {
     title: product.name,
-    description: product.tagline || product.description.slice(0, 160),
+    description: product.tagline || descriptionFor(product).slice(0, 160),
     openGraph: product.images[0] ? { images: [product.images[0].src] } : undefined,
   };
 }

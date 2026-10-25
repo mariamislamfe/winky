@@ -2,28 +2,50 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useRef, useState, type ReactNode } from "react";
-import { saveProduct, type SaveState } from "@/app/admin/actions";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { addStageColor, removeStageColor, saveProduct, type SaveState } from "@/app/admin/actions";
 import { CaseMockup } from "@/components/art/CaseMockup";
 import { ToteMockup } from "@/components/art/ToteMockup";
-import { DEFAULT_STAGE, PHONE_MODEL_SUGGESTIONS, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
+import { CASE_DESCRIPTION, DEFAULT_STAGE, PHONE_MODELS, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
 import { SITE } from "@/config/site";
+import { searchModels } from "@/lib/models";
 import type { Category, Product, ProductImage } from "@/lib/types";
 import { uploadFile } from "@/lib/upload";
 
 type Upload = { id: string; name: string; error?: string };
 
-export function ProductForm({ product }: { product?: Product }) {
+export function ProductForm({ product, customColors = [] }: { product?: Product; customColors?: string[] }) {
   const [state, action, saving] = useActionState<SaveState, FormData>(saveProduct, {});
   const [category, setCategory] = useState<Category>(product?.category ?? "tote");
   const [images, setImages] = useState<ProductImage[]>(product?.images ?? []);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [stage, setStage] = useState(product?.stage ?? DEFAULT_STAGE.tote);
   const [stageTouched, setStageTouched] = useState(Boolean(product));
-  const [models, setModels] = useState<string[]>(product?.models.length ? product.models : [...PHONE_MODEL_SUGGESTIONS]);
+  const [colors, setColors] = useState(customColors);
+  const colorPickerRef = useRef<HTMLInputElement>(null);
+  // No list on the product = it fits every model in config/catalog.ts
+  const [allModels, setAllModels] = useState(!product?.models.length);
+  const [models, setModels] = useState<string[]>(product?.models ?? []);
+  const [modelQuery, setModelQuery] = useState("");
   const [customModel, setCustomModel] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // The colour picker's "change" fires once the colour is chosen (React's onChange fires while dragging)
+  useEffect(() => {
+    const picker = colorPickerRef.current;
+    if (!picker) return;
+    const onPick = async () => {
+      const hex = picker.value.toUpperCase();
+      setStage(hex);
+      setStageTouched(true);
+      setColors((list) => (list.includes(hex) ? list : [...list, hex]));
+      const saved = await addStageColor(hex).catch(() => null);
+      if (saved) setColors(saved);
+    };
+    picker.addEventListener("change", onPick);
+    return () => picker.removeEventListener("change", onPick);
+  }, []);
   // Hide a field's error as soon as it's edited; a new save brings fresh errors.
   const [edited, setEdited] = useState<{ for: SaveState; keys: string[] }>({ for: state, keys: [] });
   if (edited.for !== state) setEdited({ for: state, keys: [] });
@@ -71,7 +93,13 @@ export function ProductForm({ product }: { product?: Product }) {
     if (!stageTouched) setStage(DEFAULT_STAGE[c]);
   };
 
-  const allModels = [...new Set([...PHONE_MODEL_SUGGESTIONS, ...models])];
+  const shownModels = searchModels([...new Set([...PHONE_MODELS, ...models])], modelQuery);
+  const swatches = [
+    ...STAGE_COLORS.map((c) => ({ hex: c.hex as string, label: c.label as string, saved: false })),
+    ...colors.map((hex) => ({ hex, label: hex, saved: true })),
+  ];
+  // A colour that was removed from the saved list stays on the products already using it
+  if (!swatches.some((s) => s.hex === stage)) swatches.push({ hex: stage, label: stage, saved: false });
 
   return (
     <form action={action} className="grid gap-8" noValidate>
@@ -200,33 +228,106 @@ export function ProductForm({ product }: { product?: Product }) {
             <input id="tagline" name="tagline" defaultValue={product?.tagline} maxLength={120} className={input} />
           </Field>
 
-          <Field label="Description" htmlFor="description" hint="Materials, size, care: whatever a customer should know. Leave a blank line between paragraphs.">
-            <textarea id="description" name="description" defaultValue={product?.description} rows={5} maxLength={2000} className={`${input} h-auto py-3`} />
+          <Field
+            label="Description"
+            htmlFor="description"
+            hint={
+              category === "case"
+                ? "Leave empty to use the standard case description (shown faded below). Write here only to replace it for this case."
+                : "Materials, size, care: whatever a customer should know. Leave a blank line between paragraphs."
+            }
+          >
+            <textarea
+              id="description"
+              name="description"
+              defaultValue={product?.description}
+              placeholder={category === "case" ? CASE_DESCRIPTION : undefined}
+              rows={5}
+              maxLength={2000}
+              className={`${input} h-auto py-3`}
+            />
           </Field>
         </div>
       </Card>
 
       {category === "case" && (
-        <Card title="Phone models" hint="Customers choose one of these on the product page.">
-          <div className="flex flex-wrap gap-2">
-            {allModels.map((m) => (
-              <label key={m} className="cursor-pointer">
+        <Card title="Phone models" hint="Customers search for their phone on the product page.">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              name="allModels"
+              checked={allModels}
+              onChange={(e) => {
+                touch("models");
+                setAllModels(e.target.checked);
+              }}
+              className="peer sr-only"
+            />
+            <span className={toggleTrack} />
+            <span>
+              <span className="block font-semibold">Fits every model on the list</span>
+              <span className="block text-sm opacity-70">
+                {PHONE_MODELS.length} models. Customers whose phone isn&apos;t listed can type it. Turn off to offer only some models.
+              </span>
+            </span>
+          </label>
+
+          {!allModels && (
+            <div className="mt-5">
+              {models.map((m) => (
+                <input key={m} type="hidden" name="models" value={m} />
+              ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="model-search" className="sr-only">
+                  Search models
+                </label>
                 <input
-                  type="checkbox"
-                  name="models"
-                  value={m}
-                  checked={models.includes(m)}
-                  onChange={(e) => {
-                    touch("models");
-                    setModels((ms) => (e.target.checked ? [...ms, m] : ms.filter((x) => x !== m)));
-                  }}
-                  className="peer sr-only"
+                  id="model-search"
+                  type="search"
+                  value={modelQuery}
+                  onChange={(e) => setModelQuery(e.target.value)}
+                  placeholder="Search, e.g. a54 or 16 pro"
+                  className={`${input} max-w-80`}
                 />
-                <span className={pill}>{m}</span>
-              </label>
-            ))}
-          </div>
-          <div className="mt-4 flex gap-2">
+                <span className="text-sm font-semibold">{models.length} selected</span>
+                <button
+                  type="button"
+                  className="min-h-11 rounded-full px-4 text-sm font-semibold ring-2 ring-grape/20 hover:ring-grape/50"
+                  onClick={() => {
+                    touch("models");
+                    setModels((ms) => [...new Set([...ms, ...shownModels])]);
+                  }}
+                >
+                  Select all shown
+                </button>
+                <button
+                  type="button"
+                  className="min-h-11 rounded-full px-4 text-sm font-semibold ring-2 ring-grape/20 hover:ring-grape/50"
+                  onClick={() => setModels((ms) => ms.filter((m) => !shownModels.includes(m)))}
+                >
+                  Clear shown
+                </button>
+              </div>
+              <div className="mt-3 flex max-h-80 flex-wrap gap-2 overflow-y-auto p-1">
+                {shownModels.map((m) => (
+                  <label key={m} className="cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={models.includes(m)}
+                      onChange={(e) => {
+                        touch("models");
+                        setModels((ms) => (e.target.checked ? [...ms, m] : ms.filter((x) => x !== m)));
+                      }}
+                      className="peer sr-only"
+                    />
+                    <span className={pill}>{m}</span>
+                  </label>
+                ))}
+                {!shownModels.length && <p className="text-sm opacity-70">No model matches “{modelQuery}”.</p>}
+              </div>
+            </div>
+          )}
+          <div className={`mt-4 flex gap-2 ${allModels ? "hidden" : ""}`}>
             <label htmlFor="custom-model" className="sr-only">
               Another model
             </label>
@@ -261,27 +362,60 @@ export function ProductForm({ product }: { product?: Product }) {
         </Card>
       )}
 
-      <Card title="Showcase color" hint="The background behind this product on the homepage and its product page.">
+      <Card
+        title="Showcase color"
+        hint="The background behind this product on the homepage and its product page. Press + to pick any colour; it's saved for all your products."
+      >
         <div className="flex flex-wrap gap-3">
-          {STAGE_COLORS.map((c) => (
-            <label key={c.id} className="cursor-pointer text-center">
-              <input
-                type="radio"
-                name="stage-choice"
-                checked={stage === c.hex}
-                onChange={() => {
-                  setStage(c.hex);
-                  setStageTouched(true);
-                }}
-                className="peer sr-only"
-              />
-              <span
-                className="mx-auto block size-12 rounded-full ring-2 ring-grape/20 transition-transform peer-checked:scale-110 peer-checked:ring-4 peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape"
-                style={{ background: c.hex }}
-              />
-              <span className="mt-1 block text-xs font-medium">{c.label}</span>
-            </label>
+          {swatches.map((c) => (
+            <div key={c.hex} className="relative">
+              <label className="block cursor-pointer text-center">
+                <input
+                  type="radio"
+                  name="stage-choice"
+                  checked={stage === c.hex}
+                  onChange={() => {
+                    setStage(c.hex);
+                    setStageTouched(true);
+                  }}
+                  className="peer sr-only"
+                />
+                <span
+                  className="mx-auto block size-12 rounded-full ring-2 ring-grape/20 transition-transform peer-checked:scale-110 peer-checked:ring-4 peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape"
+                  style={{ background: c.hex }}
+                />
+                <span className="mt-1 block text-xs font-medium">{c.label}</span>
+              </label>
+              {c.saved && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${c.hex} from the saved colours`}
+                  title="Remove from saved colours"
+                  onClick={async () => {
+                    setColors((list) => list.filter((x) => x !== c.hex));
+                    const saved = await removeStageColor(c.hex).catch(() => null);
+                    if (saved) setColors(saved);
+                  }}
+                  className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-white text-sm font-bold shadow ring-2 ring-grape/15 hover:ring-grape/50"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           ))}
+          <div className="text-center">
+            <span className="relative mx-auto grid size-12 place-items-center rounded-full border-2 border-dashed border-grape/40 text-2xl font-bold focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-grape hover:border-grape">
+              +
+              <input
+                ref={colorPickerRef}
+                type="color"
+                defaultValue="#ff8fc8"
+                aria-label="Add a colour"
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
+              />
+            </span>
+            <span className="mt-1 block text-xs font-medium">Add colour</span>
+          </div>
         </div>
       </Card>
 
@@ -343,11 +477,14 @@ function FieldError({ msg }: { msg?: string }) {
   return <p className="mt-1.5 text-sm font-semibold text-gum-deep">{msg}</p>;
 }
 
+const toggleTrack =
+  "relative mt-0.5 h-7 w-12 shrink-0 rounded-full bg-grape/20 transition-colors peer-checked:bg-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5";
+
 function Toggle({ name, label, hint, defaultChecked }: { name: string; label: string; hint: string; defaultChecked: boolean }) {
   return (
     <label className="flex cursor-pointer items-start gap-3">
       <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
-      <span className="relative mt-0.5 h-7 w-12 shrink-0 rounded-full bg-grape/20 transition-colors peer-checked:bg-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape after:absolute after:top-1 after:left-1 after:size-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+      <span className={toggleTrack} />
       <span>
         <span className="block font-semibold">{label}</span>
         <span className="block text-sm opacity-70">{hint}</span>
