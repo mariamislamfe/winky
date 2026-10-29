@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { comingSoon } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import type { Customization, Product } from "@/lib/types";
 
@@ -41,6 +42,13 @@ export function AddToBagButton({
     return () => clearTimeout(t);
   }, [added]);
 
+  if (comingSoon(product.category)) {
+    return (
+      <button type="button" disabled className={`btn ${className}`} style={style}>
+        Coming soon
+      </button>
+    );
+  }
   if (product.category === "case" && !variant && !custom && !product.customOnly) {
     return (
       <Link href={`/shop/${product.slug}`} className={`btn ${className}`}>

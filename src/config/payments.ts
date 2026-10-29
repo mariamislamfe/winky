@@ -9,7 +9,7 @@
  * Ordering stays paused until `address` or `phone` is filled in.
  */
 export const INSTAPAY = {
-  /** Deposit per order, in piasters (10000 = EGP 100) */
+  /** Deposit per item (each piece in the bag), in piasters (10000 = EGP 100) */
   depositAmount: 10000,
   /** InstaPay address (IPA), e.g. "winky@instapay" */
   address: "malakhamamah@instapay",
@@ -25,5 +25,5 @@ export const INSTAPAY = {
 
 export const instapayReady = () => Boolean(INSTAPAY.address || INSTAPAY.phone);
 
-/** Deposit actually charged for an order total (never more than the total). */
-export const depositFor = (total: number) => Math.min(INSTAPAY.depositAmount, total);
+/** Deposit for an order: EGP 100 per item, never more than the order total. */
+export const depositFor = (total: number, items: number) => Math.min(INSTAPAY.depositAmount * Math.max(1, items), total);

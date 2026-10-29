@@ -18,6 +18,9 @@ export function AdminBar() {
           <Link href="/admin/orders" className="rounded-full px-4 py-2 font-semibold hover:bg-grape/10">
             Orders
           </Link>
+          <Link href="/admin/delivery" className="rounded-full px-4 py-2 font-semibold hover:bg-grape/10">
+            Delivery
+          </Link>
           <Link href="/" target="_blank" className="rounded-full px-4 py-2 font-semibold hover:bg-grape/10">
             View store
           </Link>

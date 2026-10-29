@@ -1,5 +1,6 @@
 import { PLAIN_BASES } from "@/config/customization";
 import { PRICING } from "@/config/pricing";
+import { SITE } from "@/config/site";
 import type { CartLine, Category, Product } from "./types";
 
 export const CATEGORY_LABEL: Record<Category, { one: string; many: string }> = {
@@ -59,10 +60,11 @@ export function findProduct(products: Product[], slug: string): Product | undefi
 export function linePrice(line: CartLine, products: Product[]): number | null {
   const product = findProduct(products, line.slug);
   if (!product) return null;
-  const fee = line.custom ? PRICING.customizationFee : 0;
-  if (fee == null) return null;
-  return product.price + fee;
+  return product.price + (line.custom ? PRICING.customizationFee[product.category] : 0);
 }
+
+/** Totes that can't be ordered yet (SITE.totesComingSoon). */
+export const comingSoon = (category: Category) => category === "tote" && SITE.totesComingSoon;
 
 /** Colour of the plain product a custom design is printed on. */
 export function colorForBase(baseId: string, category: Category) {

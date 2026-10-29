@@ -7,16 +7,17 @@ import {
   TEXT_COLORS,
   TEXT_STYLES,
 } from "@/config/customization";
-import { GOVERNORATES, SHIPPING_FEE } from "@/config/orders";
+import { GOVERNORATES, type Governorate } from "@/config/orders";
 import { depositFor, instapayReady } from "@/config/payments";
 import { PRICING } from "@/config/pricing";
 import { SITE } from "@/config/site";
-import { findProduct } from "@/lib/catalog";
+import { comingSoon, findProduct } from "@/lib/catalog";
 import { clamp, LIMITS } from "@/lib/layers";
 import { isOrderableModel } from "@/lib/models";
 import { storefrontProducts } from "@/lib/store-products";
 import type { CartLine, Customization, DepositStatus, DesignLayer, Order, OrderCustomer, OrderLine, OrderStatus } from "@/lib/types";
 import { designExists, receiptExists } from "./designs";
+import { readDeliveryFees } from "./settings";
 import { readProducts } from "./store";
 import { db } from "./supabase";
 
@@ -153,6 +154,9 @@ export async function createOrder(
   for (const l of lines) {
     const product = findProduct(products, String(l?.slug ?? ""));
     if (!product) return { errors: { form: "Something in your bag is no longer available. Remove it and try again." } };
+    if (comingSoon(product.category)) {
+      return { errors: { form: `Tote bags are coming soon and can't be ordered yet. Remove ${product.name} from your bag to continue.` } };
+    }
     const quantity = Math.round(num(l.quantity, 1, SITE.maxQuantityPerLine, 1));
     let variant: string | undefined;
     if (product.category === "case") {
@@ -170,7 +174,7 @@ export async function createOrder(
     } else if (product.customOnly) {
       return { errors: { form: "A custom item in your bag has no design." } };
     }
-    const fee = custom ? (PRICING.customizationFee ?? 0) : 0;
+    const fee = custom ? PRICING.customizationFee[product.category] : 0;
     out.push({
       slug: product.slug,
       name: custom ? `Custom ${product.category === "tote" ? "tote" : "case"}` : product.name,
@@ -184,7 +188,11 @@ export async function createOrder(
   }
 
   const subtotal = out.reduce((n, l) => n + l.unitPrice * l.quantity, 0);
-  const total = subtotal + (SHIPPING_FEE ?? 0);
+  const items = out.reduce((n, l) => n + l.quantity, 0);
+  // The governorate's fee from the dashboard; none set = confirmed on the phone
+  const shipping = (await readDeliveryFees())[customer.governorate as Governorate] ?? null;
+  const total = subtotal + (shipping ?? 0);
+  const deposit = depositFor(total, items);
   const now = new Date().toISOString();
   const draft: Order = {
     id: randomUUID(),
@@ -194,12 +202,12 @@ export async function createOrder(
     updatedAt: now,
     status: "new",
     paymentMethod: "instapay-deposit",
-    deposit: { amount: depositFor(total), status: "pending", payer, reference, receiptFileId },
-    codBalance: total - depositFor(total),
+    deposit: { amount: deposit, status: "pending", payer, reference, receiptFileId },
+    codBalance: total - deposit,
     customer,
     lines: out,
     subtotal,
-    shipping: SHIPPING_FEE,
+    shipping,
     total,
     currency: SITE.currency,
     zinkRef: "",

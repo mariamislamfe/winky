@@ -155,7 +155,11 @@ export function ModelPicker({
         ) : (
           <>
             <span>{m}</span>
-            {query.trim() && brandOf.get(m) && <span className="shrink-0 text-xs opacity-60">{brandOf.get(m)}</span>}
+            {query.trim() && brandOf.get(m) && (
+              <span aria-hidden className="shrink-0 text-xs opacity-60">
+                {brandOf.get(m)}
+              </span>
+            )}
           </>
         )}
       </li>

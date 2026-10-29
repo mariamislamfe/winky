@@ -13,7 +13,14 @@ import {
   updateProduct,
   type FieldErrors,
 } from "@/lib/server/products";
-import { addCustomStageColor, HEX_COLOR, removeCustomStageColor } from "@/lib/server/settings";
+import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
+import {
+  addCustomStageColor,
+  HEX_COLOR,
+  removeCustomStageColor,
+  SETTINGS_TAG,
+  writeDeliveryFees,
+} from "@/lib/server/settings";
 
 export type LoginState = { error?: string };
 
@@ -52,6 +59,24 @@ export async function saveProduct(_prev: SaveState, form: FormData): Promise<Sav
   }
   updateTag(PRODUCTS_TAG);
   redirect(`/admin?saved=${encodeURIComponent(value.name)}`);
+}
+
+export type DeliveryState = { saved?: boolean; error?: string };
+
+/** Delivery fee per governorate, in EGP; an empty box = confirmed on the phone. */
+export async function saveDeliveryFees(_prev: DeliveryState, form: FormData): Promise<DeliveryState> {
+  await requireAdmin();
+  const fees: DeliveryFees = {};
+  for (const g of GOVERNORATES) {
+    const raw = String(form.get(g) ?? "").replace(",", ".").trim();
+    if (!raw) continue;
+    const egp = Number(raw);
+    if (!Number.isFinite(egp) || egp < 0 || egp > 10000) return { error: `Check the fee for ${g}: enter a number like 60, or leave it empty.` };
+    fees[g] = Math.round(egp * 100);
+  }
+  await writeDeliveryFees(fees);
+  updateTag(SETTINGS_TAG);
+  return { saved: true };
 }
 
 /** Saves a showcase colour picked in the dashboard so every product can use it. */

@@ -34,12 +34,15 @@ function Copy({ value, label }: { value: string; label: string }) {
  */
 export function InstapayDeposit({
   total,
+  items,
   errors,
 }: {
   total: number | null;
+  /** Pieces in the bag: the deposit is per piece */
+  items: number;
   errors: { payer?: string; receipt?: string };
 }) {
-  const deposit = depositFor(total ?? INSTAPAY.depositAmount);
+  const deposit = depositFor(total ?? INSTAPAY.depositAmount * items, items);
   const [receipt, setReceipt] = useState<{ fileId?: string; preview?: string; busy?: boolean; error?: string }>({});
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -76,7 +79,8 @@ export function InstapayDeposit({
         Pay the deposit
       </h2>
       <p className="mt-1 opacity-80">
-        Send a deposit of {formatPrice(deposit)} with InstaPay to confirm your order.
+        Send a deposit of {formatPrice(deposit)} with InstaPay to confirm your order
+        {items > 1 ? ` (${formatPrice(INSTAPAY.depositAmount)} for each of your ${items} pieces).` : "."}
         {total != null && ` The rest, ${formatPrice(total - deposit)}, is paid in cash on delivery.`}
       </p>
 

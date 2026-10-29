@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState, ViewTransition } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { CATEGORY_LABEL } from "@/lib/catalog";
+import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { descriptionFor, modelsFor } from "@/lib/models";
 import type { Product } from "@/lib/types";
@@ -21,6 +21,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const [qty, setQty] = useState(1);
   const [showModelHint, setShowModelHint] = useState(false);
   const isCase = product.category === "case";
+  const soon = comingSoon(product.category);
   const needsModel = isCase;
   const description = descriptionFor(product);
 
@@ -128,7 +129,7 @@ export function ProductDetail({ product }: { product: Product }) {
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <QuantityStepper value={qty} onChange={setQty} label="Quantity" />
+          {!soon && <QuantityStepper value={qty} onChange={setQty} label="Quantity" />}
           {needsModel && !model ? (
             <button type="button" className="btn flex-1 sm:flex-none" onClick={() => setShowModelHint(true)}>
               Add to bag <span className="wink-eye" aria-hidden />
@@ -137,7 +138,9 @@ export function ProductDetail({ product }: { product: Product }) {
             <AddToBagButton product={product} variant={model || undefined} quantity={qty} className="flex-1 sm:flex-none" />
           )}
         </div>
+        {soon && <p className="mt-3 font-medium opacity-80">Our tote bags are almost here. Check back soon!</p>}
 
+        {!soon && (
         <Link
           href={`/customize?product=${product.category}`}
           className="wink-host mt-8 flex items-center justify-between gap-4 rounded-[28px] bg-butter p-5 transition-transform duration-300 ease-[var(--ease-gum)] hover:-rotate-1"
@@ -150,6 +153,7 @@ export function ProductDetail({ product }: { product: Product }) {
           </span>
           <span className="wink-eye shrink-0 text-2xl" aria-hidden />
         </Link>
+        )}
       </div>
     </div>
   );

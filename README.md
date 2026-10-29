@@ -32,9 +32,13 @@ Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. E
 
 Placing the order on Zink is still manual until Zink offers an API.
 
-## Payments
+## Prices, delivery and payments
 
-Every order needs a fixed **InstaPay deposit** (EGP 100, `src/config/payments.ts`); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
+- **Phone cases** all cost **EGP 120** and custom cases **EGP 150** (120 + 30 for printing your design): `CASE_PRICE` and `PRICING` in `src/config/pricing.ts`. This applies to every case, whatever price is saved on it. Tote bags take their price from the dashboard.
+- **Tote bags** are "Coming soon": shown, but they can't be ordered (`totesComingSoon` in `src/config/site.ts`).
+- **Delivery fees** are set per governorate in the dashboard (**Delivery**) and added to the order total at checkout. A governorate without a fee is confirmed on the phone.
+- **Deposit:** every order needs an **InstaPay deposit of EGP 100 per item** (`src/config/payments.ts`, never more than the order total); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
+- Orders are sent to `/api/orders` (a route handler, so a customer who opened checkout before a new deploy can still order).
 
 ## Supabase
 
@@ -47,6 +51,7 @@ Everything the store saves lives in Supabase, so the site itself keeps nothing o
 | Product photos | `products` storage bucket (public) |
 | Customers' original designs | `designs` bucket (private) |
 | InstaPay screenshots | `receipts` bucket (private) |
+| Saved showcase colours, delivery fees | `settings` bucket (private, JSON files) |
 
 Only the server talks to Supabase, with the **service role key**. Row level security is on with no policies, so the public key can't read anything. Customers' and dashboard uploads go straight from the browser to storage with one-time signed links from `/api/uploads`; the buckets only accept PNG, JPG and WebP within the size limits.
 
@@ -70,8 +75,7 @@ Any Node.js host works, including **Vercel**: nothing is stored on the server.
 
 | Area | Where |
 | --- | --- |
-| Delivery fee | `SHIPPING_FEE` in `src/config/orders.ts` (`null` = confirmed on the phone). |
-| Custom item prices | `src/config/pricing.ts`. |
+| Delivery fees | Dashboard → **Delivery**. |
 | Print area size | `PRINT_AREA_CM` in `src/config/customization.ts` (ask Zink for their print specs). |
 
 ## Structure

@@ -1,36 +1,49 @@
 import "server-only";
+import { cacheLife, cacheTag } from "next/cache";
 import { STAGE_COLORS } from "@/config/catalog";
+import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
 import { storage } from "./supabase";
 
 /**
- * Small store-wide settings, kept as JSON files in the private "settings"
+ * Small store-wide settings saved from the dashboard (custom showcase
+ * colours, delivery fees), kept as JSON files in the private "settings"
  * bucket (no database table needed).
  */
 const STAGE_COLORS_FILE = "stage-colors.json";
+const DELIVERY_FEES_FILE = "delivery-fees.json";
 const MAX_CUSTOM_COLORS = 24;
 
+export const SETTINGS_TAG = "settings";
 export const HEX_COLOR = /^#[0-9A-F]{6}$/;
 
-/** Showcase colours added from the dashboard, oldest first. */
-export async function readCustomStageColors(): Promise<string[]> {
-  const { data, error } = await storage("settings").download(STAGE_COLORS_FILE);
-  if (error || !data) return [];
+async function readJson(file: string): Promise<unknown> {
+  const { data, error } = await storage("settings").download(file);
+  if (error || !data) return null;
   try {
-    const list = JSON.parse(await data.text());
-    return Array.isArray(list) ? list.filter((c): c is string => typeof c === "string" && HEX_COLOR.test(c)) : [];
+    return JSON.parse(await data.text());
   } catch {
-    return [];
+    return null;
   }
 }
 
-async function writeCustomStageColors(list: string[]) {
-  const { error } = await storage("settings").upload(STAGE_COLORS_FILE, JSON.stringify(list), {
+async function writeJson(file: string, value: unknown) {
+  const { error } = await storage("settings").upload(file, JSON.stringify(value), {
     contentType: "application/json",
     cacheControl: "0",
     upsert: true,
   });
-  if (error) throw new Error(`Couldn't save the colours: ${error.message}`);
+  if (error) throw new Error(`Couldn't save the settings: ${error.message}`);
 }
+
+// ── Showcase colours ─────────────────────────────────────────────
+
+/** Showcase colours added from the dashboard, oldest first. */
+export async function readCustomStageColors(): Promise<string[]> {
+  const list = await readJson(STAGE_COLORS_FILE);
+  return Array.isArray(list) ? list.filter((c): c is string => typeof c === "string" && HEX_COLOR.test(c)) : [];
+}
+
+const writeCustomStageColors = (list: string[]) => writeJson(STAGE_COLORS_FILE, list);
 
 export async function addCustomStageColor(hex: string) {
   const list = await readCustomStageColors();
@@ -44,4 +57,29 @@ export async function removeCustomStageColor(hex: string) {
   const next = (await readCustomStageColors()).filter((c) => c !== hex);
   await writeCustomStageColors(next);
   return next;
+}
+
+// ── Delivery fees ────────────────────────────────────────────────
+
+/** Delivery fee per governorate in piasters; a governorate without one is confirmed on the phone. */
+export async function readDeliveryFees(): Promise<DeliveryFees> {
+  const raw = await readJson(DELIVERY_FEES_FILE);
+  const fees: DeliveryFees = {};
+  if (raw && typeof raw === "object") {
+    for (const g of GOVERNORATES) {
+      const v = (raw as Record<string, unknown>)[g];
+      if (typeof v === "number" && Number.isInteger(v) && v >= 0) fees[g] = v;
+    }
+  }
+  return fees;
+}
+
+export const writeDeliveryFees = (fees: DeliveryFees) => writeJson(DELIVERY_FEES_FILE, fees);
+
+/** Delivery fees for checkout, cached until they're saved again in the dashboard. */
+export async function getDeliveryFees(): Promise<DeliveryFees> {
+  "use cache";
+  cacheTag(SETTINGS_TAG);
+  cacheLife("minutes");
+  return readDeliveryFees();
 }

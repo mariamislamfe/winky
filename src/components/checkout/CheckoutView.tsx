@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState, useTransition, type FormEvent } from "react";
-import { placeOrder, type PlaceOrderResult } from "@/app/(site)/checkout/actions";
+import type { PlaceOrderResult } from "@/app/api/orders/route";
 import { WinkMark } from "@/components/brand/WinkMark";
 import { CartLineItem } from "@/components/cart/CartLineItem";
-import { GOVERNORATES, SHIPPING_FEE } from "@/config/orders";
-import { depositFor, instapayReady } from "@/config/payments";
+import { GOVERNORATES, type DeliveryFees, type Governorate } from "@/config/orders";
+import { depositFor, INSTAPAY, instapayReady } from "@/config/payments";
 import { InstapayDeposit } from "./InstapayDeposit";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
@@ -34,6 +34,28 @@ const FIELDS: Field[] = [
   { name: "notes", label: "Notes for delivery", wide: true, optional: true },
 ];
 
+/**
+ * Sends the order. Never throws: a dropped connection or a server problem
+ * comes back as a message on the form, and the bag stays as it is.
+ */
+async function placeOrder(input: { customer: Record<string, string>; lines: CartLine[]; deposit: Record<string, string> }): Promise<PlaceOrderResult> {
+  try {
+    const res = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    const json = (await res.json().catch(() => null)) as PlaceOrderResult | null;
+    if (json && typeof json.ok === "boolean") return json;
+    throw new Error(`HTTP ${res.status}`);
+  } catch {
+    return {
+      ok: false,
+      errors: { form: "Your order didn't go through. Check your connection and press Place order again; your bag is still saved." },
+    };
+  }
+}
+
 /** Image previews (data URLs) stay in the browser; the server uses the uploaded originals. */
 const forServer = (lines: CartLine[]): CartLine[] =>
   lines.map((l) =>
@@ -48,12 +70,17 @@ const forServer = (lines: CartLine[]): CartLine[] =>
       : l,
   );
 
-export function CheckoutView() {
+export function CheckoutView({ deliveryFees }: { deliveryFees: DeliveryFees }) {
   const { lines, subtotal, count, hydrated, clear } = useCart();
   const reduce = useReducedMotion();
   const [errors, setErrors] = useState<Extract<PlaceOrderResult, { ok: false }>["errors"]>({});
   const [done, setDone] = useState<Extract<PlaceOrderResult, { ok: true }> | null>(null);
   const [pending, start] = useTransition();
+  const [governorate, setGovernorate] = useState("");
+  // undefined = no governorate chosen yet, null = fee confirmed on the phone
+  const fee = governorate ? (deliveryFees[governorate as Governorate] ?? null) : undefined;
+  const total = subtotal == null ? null : subtotal + (fee ?? 0);
+  const deposit = total == null ? null : depositFor(total, count);
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -165,7 +192,15 @@ export function CheckoutView() {
                   {f.label} {f.optional && <span className="font-normal opacity-60">(optional)</span>}
                 </label>
                 {f.name === "governorate" ? (
-                  <select id={id} name={f.name} defaultValue="" aria-invalid={!!err} aria-describedby={describedBy} className={input}>
+                  <select
+                    id={id}
+                    name={f.name}
+                    value={governorate}
+                    onChange={(e) => setGovernorate(e.target.value)}
+                    aria-invalid={!!err}
+                    aria-describedby={describedBy}
+                    className={input}
+                  >
                     <option value="" disabled>
                       Choose…
                     </option>
@@ -212,7 +247,7 @@ export function CheckoutView() {
           })}
         </div>
 
-        <InstapayDeposit total={subtotal == null ? null : subtotal + (SHIPPING_FEE ?? 0)} errors={errors} />
+        <InstapayDeposit total={total} items={count} errors={errors} />
 
         <AnimatePresence>
           {errors.form && (
@@ -249,27 +284,30 @@ export function CheckoutView() {
             <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
           </div>
           <div className="flex justify-between gap-3">
-            <dt>Delivery</dt>
-            <dd className={`text-right ${SHIPPING_FEE == null ? "opacity-70" : "tabular-nums"}`}>
-              {SHIPPING_FEE == null ? "Confirmed on the phone" : formatPrice(SHIPPING_FEE)}
+            <dt>Delivery{governorate ? ` to ${governorate}` : ""}</dt>
+            <dd className={`text-right ${fee == null ? "opacity-70" : "tabular-nums"}`}>
+              {fee === undefined ? "Choose your governorate" : fee === null ? "Confirmed on the phone" : formatPrice(fee)}
             </dd>
           </div>
           <div className="mt-2 flex justify-between gap-3 text-xl font-bold">
-            <dt>{SHIPPING_FEE == null ? "Total before delivery" : "Total"}</dt>
-            <dd className="tabular-nums">{formatPrice(subtotal == null ? null : subtotal + (SHIPPING_FEE ?? 0))}</dd>
+            <dt>{fee == null ? "Total before delivery" : "Total"}</dt>
+            <dd className="tabular-nums">{formatPrice(total)}</dd>
           </div>
         </dl>
-        {subtotal != null && (
+        {total != null && deposit != null && (
           <dl className="mt-3 grid gap-1 rounded-2xl bg-milk p-3 text-sm">
             <div className="flex justify-between gap-3">
-              <dt>Deposit now (InstaPay)</dt>
-              <dd className="font-semibold tabular-nums">{formatPrice(depositFor(subtotal + (SHIPPING_FEE ?? 0)))}</dd>
+              <dt>
+                Deposit now (InstaPay)
+                {count > 1 && <span className="opacity-70"> · {formatPrice(INSTAPAY.depositAmount)} × {count}</span>}
+              </dt>
+              <dd className="font-semibold tabular-nums">{formatPrice(deposit)}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt>Cash on delivery</dt>
               <dd className="text-right font-semibold tabular-nums">
-                {formatPrice(subtotal + (SHIPPING_FEE ?? 0) - depositFor(subtotal + (SHIPPING_FEE ?? 0)))}
-                {SHIPPING_FEE == null && " + delivery"}
+                {formatPrice(total - deposit)}
+                {fee == null && " + delivery"}
               </dd>
             </div>
           </dl>

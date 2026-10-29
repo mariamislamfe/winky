@@ -7,10 +7,19 @@ import { ProductVisual } from "@/components/art/ProductVisual";
 import { ToteMockup } from "@/components/art/ToteMockup";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
 import { AddToBagButton } from "@/components/shop/AddToBagButton";
+import { comingSoon } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 
-const SECTION =
-  "relative z-10 overflow-hidden bg-cobalt pt-16 pb-20 text-milk motion-safe:-mt-[max(100svh,560px)] md:pt-20 md:pb-16";
+// A light, compact section: totes are a sneak peek while they're coming soon
+const SECTION = "relative overflow-hidden bg-[#FFD1E4] pt-14 pb-14 text-grape md:pt-16 md:pb-12";
+
+function SoonBadge() {
+  return (
+    <span className="inline-block -rotate-6 rounded-full bg-grape px-4 py-1.5 text-base font-bold text-milk shadow-[0_3px_0_rgb(43_17_64/0.2)] md:text-lg">
+      Coming soon
+    </span>
+  );
+}
 
 /** Signed distance from the active slide, wrapped into [-n/2, n/2). */
 function offsetOf(i: number, active: number, n: number) {
@@ -29,6 +38,7 @@ export function ToteCarousel() {
   const reduce = useReducedMotion();
   const dragged = useRef(false);
   const product = totes[Math.min(active, n - 1)];
+  const soon = comingSoon("tote");
 
   const go = useCallback(
     (delta: number) => {
@@ -61,11 +71,16 @@ export function ToteCarousel() {
     >
       <div className="mx-auto flex max-w-[1400px] items-end justify-between gap-6 px-5 md:px-10">
         <div>
-          <h2 className="totes-title font-display text-[clamp(4.5rem,11vw,9rem)] leading-[0.82] text-butter">Totes</h2>
-          <p className="mt-4 max-w-[34ch] text-lg font-medium text-milk/90">
-            {n > 1
-              ? `${n} designs on the rail. Drag, swipe or tap a bag to bring it front and center.`
-              : "Fresh off the rail."}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <h2 className="totes-title font-display text-[clamp(3.4rem,8vw,6.5rem)] leading-[0.82]">Totes</h2>
+            {soon && <SoonBadge />}
+          </div>
+          <p className="mt-4 max-w-[36ch] text-lg font-medium opacity-85">
+            {soon
+              ? "Our tote bags are almost here. Here's a first look at the designs."
+              : n > 1
+                ? `${n} designs on the rail. Drag, swipe or tap a bag to bring it front and center.`
+                : "Fresh off the rail."}
           </p>
         </div>
         {n > 1 && (
@@ -90,7 +105,7 @@ export function ToteCarousel() {
           else if (info.offset.x > 50 || info.velocity.x > 450) go(-1);
           setTimeout(() => (dragged.current = false), 0);
         }}
-        className="relative h-[min(100vw,440px)] cursor-grab touch-pan-y select-none active:cursor-grabbing md:h-[min(42vw,540px)]"
+        className="relative h-[min(84vw,340px)] cursor-grab touch-pan-y select-none active:cursor-grabbing md:h-[min(30vw,400px)]"
       >
         {/* the rail */}
         <div aria-hidden className="absolute inset-x-0 top-[3%] h-3 bg-[repeating-linear-gradient(90deg,var(--color-butter)_0_28px,var(--color-milk)_28px_56px)] shadow-[0_4px_0_rgb(43_17_64/0.25)]" />
@@ -126,10 +141,10 @@ export function ToteCarousel() {
                 transition={
                   reduce ? { duration: 0 } : { type: "spring", stiffness: 210, damping: 24, mass: 0.9 }
                 }
-                className="absolute top-[3%] left-1/2 -ml-[min(21vw,90px)] w-[min(42vw,180px)] origin-top md:-ml-[min(8vw,115px)] md:w-[min(16vw,230px)]"
+                className="absolute top-[3%] left-1/2 -ml-[min(18vw,75px)] w-[min(36vw,150px)] origin-top md:-ml-[min(6vw,88px)] md:w-[min(12vw,176px)]"
               >
                 {/* hook */}
-                <div aria-hidden className="mx-auto -mt-3 h-12 w-6 rounded-b-full border-[5px] border-t-0 border-milk" />
+                <div aria-hidden className="mx-auto -mt-3 h-12 w-6 rounded-b-full border-[5px] border-t-0 border-grape/40" />
                 <div className="tote-swing -mt-[9%] origin-top">
                   {isActive ? (
                     <Link
@@ -170,12 +185,13 @@ export function ToteCarousel() {
                 transition={{ type: "spring", stiffness: 420, damping: 30 }}
                 className="origin-left"
               >
-                <p className="text-sm font-semibold tabular-nums text-milk/80">
+                <p className="text-sm font-semibold tabular-nums opacity-70">
                   {String(active + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
                 </p>
-                <h3 className="font-display mt-1 text-[clamp(2.2rem,5vw,3.6rem)] leading-[0.95]">{product.name}</h3>
-                <p className="mt-2 text-lg text-milk/90">
-                  {product.tagline} <span className="font-semibold text-butter">{formatPrice(product.price)}</span>
+                <h3 className="font-display mt-1 text-[clamp(1.9rem,4vw,2.8rem)] leading-[0.95]">{product.name}</h3>
+                <p className="mt-2 text-lg opacity-85">
+                  {product.tagline}{" "}
+                  {!soon && <span className="font-semibold">{formatPrice(product.price)}</span>}
                 </p>
               </motion.div>
             </AnimatePresence>
@@ -186,16 +202,10 @@ export function ToteCarousel() {
                 <CarouselButtons onPrev={() => go(-1)} onNext={() => go(1)} />
               </div>
             )}
-            <Link
-              href={`/shop/${product.slug}`}
-              className="btn btn-ghost text-milk"
-            >
+            <Link href={`/shop/${product.slug}`} className="btn btn-ghost">
               View details
             </Link>
-            <AddToBagButton
-              product={product}
-              className="[--btn-bg:var(--color-butter)] [--btn-fg:var(--color-grape)]"
-            />
+            {!soon && <AddToBagButton product={product} />}
           </div>
         </div>
       </div>
@@ -203,23 +213,31 @@ export function ToteCarousel() {
   );
 }
 
-/** Keeps the blue handoff from the hero when there are no totes yet. */
+/** When no tote is published yet. */
 function TotesComingSoon() {
+  const soon = comingSoon("tote");
   return (
     <section aria-labelledby="totes-soon" className={SECTION}>
       <div className="mx-auto grid max-w-[1400px] items-center gap-10 px-5 md:grid-cols-[1.2fr_1fr] md:px-10">
         <div>
-          <h2 id="totes-soon" className="font-display text-[clamp(4.5rem,11vw,9rem)] leading-[0.82] text-butter">
-            Totes
-          </h2>
-          <p className="mt-4 max-w-[34ch] text-lg font-medium text-milk/90">
-            New designs are on the way. Until then, put your own design on a plain tote.
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <h2 id="totes-soon" className="font-display text-[clamp(3.4rem,8vw,6.5rem)] leading-[0.82]">
+              Totes
+            </h2>
+            <SoonBadge />
+          </div>
+          <p className="mt-4 max-w-[34ch] text-lg font-medium opacity-85">
+            {soon
+              ? "Our tote bags are almost here."
+              : "New designs are on the way. Until then, put your own design on a plain tote."}
           </p>
-          <Link href="/customize?product=tote" className="btn mt-6 [--btn-bg:var(--color-butter)] [--btn-fg:var(--color-grape)]">
-            Design your tote <span className="wink-eye" aria-hidden />
-          </Link>
+          {!soon && (
+            <Link href="/customize?product=tote" className="btn mt-6">
+              Design your tote <span className="wink-eye" aria-hidden />
+            </Link>
+          )}
         </div>
-        <ToteMockup color="#F4E6D4" className="mx-auto h-auto w-[min(70vw,340px)] -rotate-3 drop-shadow-[14px_18px_0_rgb(43_17_64/0.3)]" />
+        <ToteMockup color="#F4E6D4" className="mx-auto h-auto w-[min(56vw,260px)] -rotate-3 drop-shadow-[12px_14px_0_rgb(43_17_64/0.18)]" />
       </div>
     </section>
   );

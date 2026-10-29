@@ -134,7 +134,8 @@ export function DesignCanvas({ category, custom, selectedId, onSelect, onUpdate,
   const pctY = (v: number) => `${(v / box.h) * 100}%`;
 
   return (
-    <div className="relative h-full" style={{ aspectRatio: `${box.w} / ${box.h}` }}>
+    // Fills the box it's given; the Customizer sizes that box to the mockup's proportions
+    <div className="relative size-full">
       <Mockup color={color} custom={custom} title={title} className="absolute inset-0 size-full drop-shadow-[12px_14px_0_rgb(43_17_64/0.18)]" />
 
       {/* Interaction layer, aligned to the print area */}

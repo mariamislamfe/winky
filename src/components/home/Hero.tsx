@@ -54,7 +54,7 @@ export function Hero() {
 
         // ── 3. Signature scroll ──
         // The eye leaves its letter, floats to the middle of the screen, winks
-        // at you, then swallows the screen and becomes the tote stage.
+        // at you, then swallows the screen and becomes the blue band the cases rise from.
         // The scene is CSS-sticky inside a taller track, so it stays put (and
         // usable) even without JS; GSAP only scrubs over the track's extra length.
         const scene = root.current!;
@@ -85,7 +85,7 @@ export function Hero() {
             trigger: track.current,
             start: "top top",
             // Scrub ends one screen before the scene unsticks; during that last
-            // screen the (blue) tote section slides up over the (now blue) hero.
+            // screen the (blue) cases band slides up over the (now blue) hero.
             end: () => `bottom-=${scene.offsetHeight * 2} top`,
             scrub: 0.6,
             invalidateOnRefresh: true,
@@ -222,7 +222,7 @@ export function Hero() {
         aria-hidden
         className="hero-glyph-note font-display pointer-events-none absolute inset-x-0 top-[calc(50%+var(--d)*0.62)] z-20 text-center text-[clamp(1.6rem,3vw,2.6rem)] text-grape opacity-0 [--d:min(34vw,36svh)] md:[--d:min(27.4vw,48svh)] motion-reduce:hidden"
       >
-        psst… totes this way
+        psst… cases this way
       </p>
 
       {/* Final frame of the scroll: section is fully blue-raspberry */}

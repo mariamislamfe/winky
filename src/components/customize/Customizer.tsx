@@ -19,7 +19,7 @@ import {
 } from "@/config/customization";
 import { PHONE_MODELS } from "@/config/catalog";
 import { ModelPicker } from "@/components/shop/ModelPicker";
-import { CUSTOM_BASES } from "@/lib/catalog";
+import { comingSoon, CUSTOM_BASES } from "@/lib/catalog";
 import { describePlacement, layerTitle } from "@/lib/describe";
 import { formatPrice } from "@/lib/format";
 import { prepareUpload, UploadError } from "@/lib/image";
@@ -39,7 +39,8 @@ async function uploadOriginal(file: File): Promise<string> {
 }
 
 function initialState(params: URLSearchParams) {
-  const category: Category = params.get("product") === "case" ? "case" : "tote";
+  // Phone cases unless a tote was asked for and totes can be ordered
+  const category: Category = params.get("product") === "tote" && !comingSoon("tote") ? "tote" : "case";
   const rawText = (params.get("text") ?? "").slice(0, CUSTOM_TEXT.maxLength).trim();
   const color = params.get("color");
   const textColor = TEXT_COLORS.some((c) => c.id === color) ? (color as TextColorId) : "grape";
@@ -67,7 +68,8 @@ export function Customizer() {
 
   const custom: Customization = { baseId, layers };
   const product = CUSTOM_BASES[category];
-  const unit = PRICING.customizationFee == null ? null : product.price + PRICING.customizationFee;
+  const fee = PRICING.customizationFee[category];
+  const unit = product.price + fee;
   const selected = layers.find((l) => l.id === selectedId) ?? null;
   const full = layers.length >= MAX_LAYERS;
   const area = GEOMETRY[category].area;
@@ -149,8 +151,11 @@ export function Customizer() {
     <div className="group/cz mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)] gap-8 px-5 pb-16 md:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14">
       {/* Canvas (stops sticking on phones while the model search is in use, so the results have room) */}
       <div className="sticky top-0 z-20 -mx-5 bg-milk/95 px-5 pt-3 pb-3 backdrop-blur-sm max-lg:group-has-[[role=combobox]:focus]/cz:static lg:top-24 lg:mx-0 lg:self-start lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
-        <div className="relative grid h-[44svh] min-h-[280px] place-items-center rounded-[32px] bg-[#FFD1E4] py-8 lg:h-[min(76vh,720px)] lg:rounded-[40px] lg:py-12">
+        <div className="relative grid h-[44svh] min-h-[280px] place-items-center rounded-[32px] bg-[#FFD1E4] lg:h-[min(76vh,720px)] lg:rounded-[40px]">
           <span aria-hidden className="pointer-events-none absolute aspect-square h-[78%] rounded-full bg-white/35" />
+          {/* The product is sized from this frame with container units (exact width and height,
+              centred), not from aspect-ratio + a percentage height, which Safari can mis-size. */}
+          <div className="absolute inset-x-4 inset-y-8 grid place-items-center [container-type:size] lg:inset-y-12">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={category}
@@ -158,7 +163,11 @@ export function Customizer() {
               animate={{ y: 0, rotate: 0, opacity: 1 }}
               exit={reduce ? undefined : { y: -60, opacity: 0, transition: { duration: 0.16 } }}
               transition={{ type: "spring", stiffness: 260, damping: 24 }}
-              className="relative h-full"
+              className="relative col-start-1 row-start-1"
+              style={{
+                width: `min(100cqw, 100cqh * ${GEOMETRY[category].box.w / GEOMETRY[category].box.h})`,
+                height: `min(100cqh, 100cqw * ${GEOMETRY[category].box.h / GEOMETRY[category].box.w})`,
+              }}
             >
               <DesignCanvas
                 category={category}
@@ -171,6 +180,7 @@ export function Customizer() {
               />
             </motion.div>
           </AnimatePresence>
+          </div>
           {layers.length === 0 && (
             <p className="pointer-events-none absolute inset-x-6 top-1/2 -translate-y-1/2 text-center font-display text-2xl text-grape/70 lg:text-3xl">
               Upload your design or add text to start
@@ -186,10 +196,17 @@ export function Customizer() {
       <div className="flex flex-col gap-9">
         <Step title="What are we making?">
           <div className="grid grid-cols-2 gap-3">
-            {(["tote", "case"] as const).map((c) => (
-              <label key={c} className="cursor-pointer">
-                <input type="radio" name="category" className="peer sr-only" checked={category === c} onChange={() => switchCategory(c)} />
-                <span className="flex h-full items-center gap-3 rounded-[24px] p-3 ring-2 ring-grape/15 transition-all duration-300 ease-[var(--ease-gum)] peer-checked:bg-grape peer-checked:text-milk peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape hover:ring-grape/40">
+            {(["case", "tote"] as const).map((c) => (
+              <label key={c} className={comingSoon(c) ? "cursor-not-allowed" : "cursor-pointer"}>
+                <input
+                  type="radio"
+                  name="category"
+                  className="peer sr-only"
+                  checked={category === c}
+                  disabled={comingSoon(c)}
+                  onChange={() => switchCategory(c)}
+                />
+                <span className="flex h-full items-center gap-3 rounded-[24px] p-3 ring-2 ring-grape/15 transition-all duration-300 ease-[var(--ease-gum)] peer-checked:bg-grape peer-checked:text-milk peer-checked:ring-grape peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-grape peer-disabled:opacity-60 hover:ring-grape/40 peer-disabled:hover:ring-grape/15">
                   <span className="grid h-16 w-12 shrink-0 place-items-center">
                     {c === "tote" ? (
                       <ToteMockup color={PLAIN_BASES.tote[0].color} className="h-full w-auto" />
@@ -197,7 +214,10 @@ export function Customizer() {
                       <CaseMockup color={PLAIN_BASES.case[0].color} className="h-full w-auto" />
                     )}
                   </span>
-                  <span className="font-semibold">{c === "tote" ? "Tote bag" : "Phone case"}</span>
+                  <span>
+                    <span className="block font-semibold">{c === "tote" ? "Tote bag" : "Phone case"}</span>
+                    {comingSoon(c) && <span className="block text-sm font-medium">Coming soon</span>}
+                  </span>
                 </span>
               </label>
             ))}
@@ -499,7 +519,7 @@ export function Customizer() {
             </div>
             <div className="flex justify-between">
               <span>Printing your design</span>
-              <span className="tabular-nums">{formatPrice(PRICING.customizationFee)}</span>
+              <span className="tabular-nums">{formatPrice(fee)}</span>
             </div>
             <div className="mt-2 flex justify-between text-xl font-bold">
               <span>Each</span>

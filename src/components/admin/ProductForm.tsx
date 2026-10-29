@@ -7,7 +7,9 @@ import { addStageColor, removeStageColor, saveProduct, type SaveState } from "@/
 import { CaseMockup } from "@/components/art/CaseMockup";
 import { ToteMockup } from "@/components/art/ToteMockup";
 import { CASE_DESCRIPTION, DEFAULT_STAGE, PHONE_MODELS, PRODUCT_IMAGE, STAGE_COLORS } from "@/config/catalog";
+import { CASE_PRICE, PRICING } from "@/config/pricing";
 import { SITE } from "@/config/site";
+import { formatPrice } from "@/lib/format";
 import { searchModels } from "@/lib/models";
 import type { Category, Product, ProductImage } from "@/lib/types";
 import { uploadFile } from "@/lib/upload";
@@ -211,18 +213,28 @@ export function ProductForm({ product, customColors = [] }: { product?: Product;
             <input id="name" name="name" defaultValue={product?.name} maxLength={80} required className={input} aria-invalid={!!errors.name} onChange={() => touch("name")} />
           </Field>
 
-          <Field label={`Price (${SITE.currency})`} error={errors.price} htmlFor="price">
-            <input
-              id="price"
-              name="price"
-              inputMode="decimal"
-              defaultValue={product ? (product.price / 100).toString() : ""}
-              placeholder="450"
-              className={`${input} max-w-48`}
-              aria-invalid={!!errors.price}
-              onChange={() => touch("price")}
-            />
-          </Field>
+          {category === "case" ? (
+            <Field
+              label={`Price (${SITE.currency})`}
+              htmlFor="price"
+              hint={`Every phone case costs ${formatPrice(CASE_PRICE)} (custom cases ${formatPrice(CASE_PRICE + PRICING.customizationFee.case)}). It's set once for all cases.`}
+            >
+              <input id="price" value={CASE_PRICE / 100} readOnly aria-readonly className={`${input} max-w-48 bg-grape/5 opacity-80`} />
+            </Field>
+          ) : (
+            <Field label={`Price (${SITE.currency})`} error={errors.price} htmlFor="price">
+              <input
+                id="price"
+                name="price"
+                inputMode="decimal"
+                defaultValue={product ? (product.price / 100).toString() : ""}
+                placeholder="450"
+                className={`${input} max-w-48`}
+                aria-invalid={!!errors.price}
+                onChange={() => touch("price")}
+              />
+            </Field>
+          )}
 
           <Field label="Short line (optional)" htmlFor="tagline" hint="One playful sentence for cards and the homepage.">
             <input id="tagline" name="tagline" defaultValue={product?.tagline} maxLength={120} className={input} />
@@ -396,9 +408,11 @@ export function ProductForm({ product, customColors = [] }: { product?: Product;
                     const saved = await removeStageColor(c.hex).catch(() => null);
                     if (saved) setColors(saved);
                   }}
-                  className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-white text-sm font-bold shadow ring-2 ring-grape/15 hover:ring-grape/50"
+                  className="group/x absolute -top-4 -right-4 grid size-10 place-items-center rounded-full"
                 >
-                  ×
+                  <span className="grid size-7 place-items-center rounded-full bg-white text-sm font-bold shadow ring-2 ring-grape/15 group-hover/x:ring-grape/50">
+                    ×
+                  </span>
                 </button>
               )}
             </div>

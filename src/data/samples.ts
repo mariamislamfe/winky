@@ -1,3 +1,4 @@
+import { CASE_PRICE } from "@/config/pricing";
 import type { Artwork, Category, Product } from "@/lib/types";
 
 /**
@@ -18,7 +19,7 @@ type Sample = {
   isNew?: boolean;
 };
 
-const PRICE: Record<Category, number> = { tote: 45000, case: 35000 };
+const PRICE: Record<Category, number> = { tote: 45000, case: CASE_PRICE };
 
 const SAMPLES: Sample[] = [
   // ── Tote bags ────────────────────────────────────────────────

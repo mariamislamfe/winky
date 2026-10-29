@@ -1,17 +1,23 @@
 import type { Category } from "@/lib/types";
 
 /**
- * Pricing for custom (customer-designed) items.
- * Catalog products get their price from the dashboard.
+ * Prices in minor units (piasters): 12000 = EGP 120.
  *
- * Amounts are in minor units (piasters): 45000 = EGP 450.
+ * Phone cases all cost the same: CASE_PRICE applies to every case, old and
+ * new, whatever price is saved on the product in the dashboard. Tote bags
+ * get their price from the dashboard.
  */
+export const CASE_PRICE = 12000;
+
 export const PRICING = {
   /** Price of the plain tote / case a custom design is printed on */
   customBase: {
     tote: 45000,
-    case: 35000,
+    case: CASE_PRICE,
   } satisfies Record<Category, number>,
-  /** Added once per customized item. `null` = not priced yet. */
-  customizationFee: 10000 as number | null,
+  /** Added once per customized item: a custom case is 120 + 30 = EGP 150 */
+  customizationFee: {
+    tote: 10000,
+    case: 3000,
+  } satisfies Record<Category, number>,
 } as const;

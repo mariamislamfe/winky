@@ -8,8 +8,8 @@ import { PageBlink } from "@/components/layout/PageBlink";
 
 /**
  * The home journey:
- * gum hero → (the eye swallows the screen) → blue-raspberry tote rail
- * → colour-shifting case hand → milk customizer → mint sticker sheet
+ * gum hero → (the eye swallows the screen) → colour-shifting case hand
+ * → light tote rail (coming soon) → milk customizer → mint sticker sheet
  * → gum wink goodbye.
  */
 export default function Home() {
@@ -17,8 +17,8 @@ export default function Home() {
     <>
       <PageBlink />
       <Hero />
-      <ToteCarousel />
       <CaseFan />
+      <ToteCarousel />
       <CustomizeTeaser />
       <FreshDrops />
       <FinalCta />

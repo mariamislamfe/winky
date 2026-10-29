@@ -12,6 +12,12 @@ import { formatPrice } from "@/lib/format";
 const SECTION = "relative overflow-hidden rounded-t-[min(14vw,140px)] pt-16 pb-12 md:pt-20 md:pb-14";
 
 /**
+ * The hero ends with its eye filling the screen blue; this blue band slides up over
+ * that last (sticky) screen so the case stage rises out of it.
+ */
+const HANDOFF = "relative z-10 bg-cobalt pt-16 motion-safe:-mt-[max(100svh,560px)] md:pt-20";
+
+/**
  * Stage, details and the hand of cards all fit in one screen, so picking a
  * case from the hand shows it on the stage without scrolling.
  *
@@ -49,7 +55,7 @@ export function CaseFan() {
   const btnColors = { ["--btn-bg" as string]: product.stageInk, ["--btn-fg" as string]: product.stage };
 
   return (
-    <div className="bg-cobalt">
+    <div className={HANDOFF}>
       <motion.section
         id="cases"
         aria-labelledby="cases-title"
@@ -224,7 +230,7 @@ export function CaseFan() {
 
 function CasesComingSoon() {
   return (
-    <div className="bg-cobalt">
+    <div className={HANDOFF}>
       <section aria-labelledby="cases-soon" className={`${SECTION} bg-gum text-grape`}>
         <div className="mx-auto grid max-w-[1400px] items-center gap-10 px-5 md:grid-cols-[1fr_1.2fr] md:px-10">
           <CaseMockup color="#FFE3EE" className="order-2 mx-auto h-auto w-[min(46vw,230px)] rotate-6 drop-shadow-[14px_18px_0_rgb(43_17_64/0.25)] md:order-1" />

@@ -8,6 +8,12 @@ export const SITE = {
   currency: "EGP",
   locale: "en-US",
   maxQuantityPerLine: 10,
+  /**
+   * Tote bags are shown but can't be ordered yet: they're labelled "Coming
+   * soon" everywhere (home, shop, product pages, customizer) and the server
+   * refuses them. Set to false to start selling totes.
+   */
+  totesComingSoon: true,
 } as const;
 
 /** Primary navigation, shared by header, mobile menu and footer. */

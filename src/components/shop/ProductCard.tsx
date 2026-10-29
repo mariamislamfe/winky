@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
-import { CATEGORY_LABEL } from "@/lib/catalog";
+import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
@@ -20,7 +20,8 @@ export function ProductCard({
 }) {
   const { add } = useCart();
   const href = product.customOnly ? `/customize?product=${product.category}` : `/shop/${product.slug}`;
-  const quickAdd = product.category === "tote" && !product.customOnly;
+  const soon = comingSoon(product.category);
+  const quickAdd = product.category === "tote" && !product.customOnly && !soon;
   const hasSecond = product.images.length > 1;
   const art = (
     <div className="absolute inset-[12%] flex items-center justify-center transition-transform duration-500 ease-[var(--ease-gum)] group-hover:-translate-y-2 group-hover:-rotate-3">
@@ -63,7 +64,12 @@ export function ProductCard({
           art
         )}
         <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
-          {product.isNew && (
+          {soon && (
+            <span className="rotate-[-6deg] rounded-full bg-grape px-3 py-1 text-sm font-bold text-milk shadow-[0_2px_0_rgb(43_17_64/0.2)]">
+              Coming soon
+            </span>
+          )}
+          {product.isNew && !soon && (
             <span className="rotate-[-6deg] rounded-full bg-butter px-3 py-1 text-sm font-bold text-grape shadow-[0_2px_0_rgb(43_17_64/0.2)]">
               New
             </span>

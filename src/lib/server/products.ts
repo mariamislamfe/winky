@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { CASE_DESCRIPTION, DEFAULT_STAGE, PRODUCT_IMAGE } from "@/config/catalog";
+import { CASE_PRICE } from "@/config/pricing";
 import { luminance } from "@/lib/color";
 import type { Category, Product, ProductImage } from "@/lib/types";
 import { deleteProductPhotos, mutateProducts, photoName, readProducts } from "./store";
@@ -54,8 +55,11 @@ export function parseProductForm(form: FormData) {
 
   if (!name) errors.name = "Give the product a name.";
   if (category !== "tote" && category !== "case") errors.category = "Choose tote bag or phone case.";
-  const price = Number(priceRaw);
-  if (!priceRaw || !Number.isFinite(price) || price <= 0) errors.price = "Enter a price above 0, like 450 or 450.50.";
+  // Phone cases all cost CASE_PRICE (config/pricing.ts); only totes take the price typed here
+  const price = category === "case" ? CASE_PRICE / 100 : Number(priceRaw);
+  if (category !== "case" && (!priceRaw || !Number.isFinite(price) || price <= 0)) {
+    errors.price = "Enter a price above 0, like 450 or 450.50.";
+  }
   if (!images) errors.images = "Something went wrong with the photos. Remove them and upload again.";
   else if (images.length === 0) errors.images = "Add at least one photo.";
   else if (images.length > PRODUCT_IMAGE.maxPerProduct) errors.images = `Use up to ${PRODUCT_IMAGE.maxPerProduct} photos.`;

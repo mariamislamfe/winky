@@ -1,4 +1,5 @@
 import "server-only";
+import { CASE_PRICE } from "@/config/pricing";
 import type { Product } from "@/lib/types";
 import { BUCKETS, db, storage, SUPABASE_URL } from "./supabase";
 
@@ -9,7 +10,11 @@ import { BUCKETS, db, storage, SUPABASE_URL } from "./supabase";
 export async function readProducts(): Promise<Product[]> {
   const { data, error } = await db().from("products").select("data").order("position");
   if (error) throw new Error(`Couldn't load products: ${error.message}`);
-  return data.map((row) => row.data as Product);
+  // Every case costs the same (config/pricing.ts), whatever was saved on it before
+  return data.map((row) => {
+    const p = row.data as Product;
+    return p.category === "case" ? { ...p, price: CASE_PRICE } : p;
+  });
 }
 
 // Serialize dashboard writes in this server so two saves can't interleave.

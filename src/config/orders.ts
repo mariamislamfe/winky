@@ -6,19 +6,21 @@ import type { OrderStatus } from "@/lib/types";
  * Orders are cash on delivery: Zink prints, delivers and collects the cash.
  */
 
-/**
- * Delivery fee charged to the customer, in minor units (piasters).
- * `null` = not shown as a number; the customer is told shipping is confirmed
- * when you call to confirm the order. Set it once you know your rate.
- */
-export const SHIPPING_FEE: number | null = null;
-
 export const GOVERNORATES = [
   "Cairo", "Giza", "Alexandria", "Qalyubia", "Sharqia", "Dakahlia", "Gharbia",
   "Monufia", "Beheira", "Kafr El Sheikh", "Damietta", "Port Said", "Ismailia",
   "Suez", "North Sinai", "South Sinai", "Red Sea", "Faiyum", "Beni Suef", "Minya",
   "Asyut", "Sohag", "Qena", "Luxor", "Aswan", "Matrouh", "New Valley",
 ] as const;
+
+export type Governorate = (typeof GOVERNORATES)[number];
+
+/**
+ * Delivery fee per governorate in piasters, set in the dashboard
+ * (/admin/delivery) and added to the order total. A governorate without a
+ * fee is confirmed on the phone instead.
+ */
+export type DeliveryFees = Partial<Record<Governorate, number>>;
 
 export const ORDER_STATUSES: { id: OrderStatus; label: string; tone: string }[] = [
   { id: "new", label: "New", tone: "bg-butter" },
