@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
+import { comingSoon } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
@@ -14,9 +15,12 @@ const MAX = 6;
 /** Samples that read well on bubblegum, used while the store shows samples. */
 const SAMPLE_PICKS = ["cherry-pop-tote", "wink-wink-case", "lucky-stars-case", "gumball-machine-tote"];
 
-function featured(products: Product[]) {
-  if (products[0]?.sample) {
-    return SAMPLE_PICKS.map((slug) => products.find((p) => p.slug === slug)).filter(Boolean) as Product[];
+function featured(all: Product[]) {
+  // Coming-soon products can't be opened, so they aren't featured
+  const products = all.filter((p) => !comingSoon(p.category));
+  if (all[0]?.sample) {
+    const picks = SAMPLE_PICKS.map((slug) => products.find((p) => p.slug === slug)).filter(Boolean) as Product[];
+    return picks.length ? picks : products.slice(0, MAX);
   }
   // New products first, cut-outs before photos with a background
   const score = (p: Product) => (p.isNew ? 0 : 2) + (p.images[0]?.cutout ? 0 : 1);

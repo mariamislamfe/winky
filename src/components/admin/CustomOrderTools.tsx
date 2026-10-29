@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
 import { CaseMockup, CASE_PRINT } from "@/components/art/CaseMockup";
 import { textHex } from "@/components/art/CustomOverlay";
 import { ToteMockup, TOTE_PRINT } from "@/components/art/ToteMockup";
@@ -85,36 +87,169 @@ async function renderPrintFile(custom: Customization, category: Category) {
   );
 }
 
-export function PrintFileButton({ custom, category, fileName }: { custom: Customization; category: Category; fileName: string }) {
-  const [state, setState] = useState<{ busy?: boolean; error?: string; size?: string }>({});
+function download(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(new Error("Couldn't read the print file."));
+    r.readAsDataURL(blob);
+  });
+
+const MOCKUP_WIDTH_PX = 1600;
+
+/**
+ * The mockup as a PNG: the product drawing with the finished print file laid
+ * over its print area (so fonts and originals match the print exactly).
+ */
+async function renderMockupFile(custom: Customization, category: Category, print: { blob: Blob; W: number; H: number }) {
+  const flat: Customization = {
+    baseId: custom.baseId,
+    layers: [
+      {
+        kind: "image",
+        id: "print",
+        src: await blobToDataUrl(print.blob),
+        name: "print",
+        aspect: print.H / print.W,
+        originalWidth: print.W,
+        originalHeight: print.H,
+        width: 1,
+        x: 0.5,
+        y: 0.5,
+        rotation: 0,
+      },
+    ],
+  };
+  const host = document.createElement("div");
+  const root = createRoot(host);
+  flushSync(() => root.render(<OrderMockup custom={flat} category={category} />));
+  const svg = host.querySelector("svg")!;
+  const [, , vw, vh] = svg.getAttribute("viewBox")!.split(" ").map(Number);
+  const W = MOCKUP_WIDTH_PX;
+  const H = Math.round((W * vh) / vw);
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", String(W));
+  svg.setAttribute("height", String(H));
+  const markup = new XMLSerializer().serializeToString(svg);
+  root.unmount();
+
+  const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml" }));
+  try {
+    const img = await loadImage(url);
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    // white, not transparent: photo galleries show transparency as black
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/png"),
+    );
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+const CHECKER =
+  "bg-white bg-[length:20px_20px] bg-[position:0_0,10px_10px] bg-[image:linear-gradient(45deg,rgb(43_17_64/0.07)_25%,transparent_25%,transparent_75%,rgb(43_17_64/0.07)_75%),linear-gradient(45deg,rgb(43_17_64/0.07)_25%,transparent_25%,transparent_75%,rgb(43_17_64/0.07)_75%)]";
+
+/**
+ * A custom item's two pictures side by side: the design on the product (as
+ * the customer saw it) and the design on its own (the print file), each with
+ * a download.
+ */
+export function DesignFiles({ custom, category, fileName }: { custom: Customization; category: Category; fileName: string }) {
+  const [print, setPrint] = useState<{ blob: Blob; W: number; H: number; url: string } | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const product = category === "tote" ? "tote" : "case";
+
+  useEffect(() => {
+    let url = "";
+    let live = true;
+    renderPrintFile(custom, category)
+      .then((p) => {
+        url = URL.createObjectURL(p.blob);
+        if (live) setPrint({ ...p, url });
+        else URL.revokeObjectURL(url);
+      })
+      .catch((e) => live && setError((e as Error).message || "Couldn't build the print file."));
+    return () => {
+      live = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [custom, category]);
+
+  const panel = "grid grid-rows-[auto_1fr_auto] gap-3 rounded-2xl bg-milk p-4";
+  const button = "min-h-11 rounded-full bg-grape px-4 text-sm font-bold text-milk disabled:opacity-50";
+
   return (
-    <div>
-      <button
-        type="button"
-        className="btn"
-        disabled={state.busy}
-        onClick={async () => {
-          setState({ busy: true });
-          try {
-            const { blob, W, H } = await renderPrintFile(custom, category);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = fileName;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
-            setState({ size: `${W} × ${H} px` });
-          } catch (e) {
-            setState({ error: (e as Error).message || "Couldn't build the print file." });
-          }
-        }}
-      >
-        {state.busy ? "Building print file…" : "Download print file (PNG)"}
-      </button>
-      {state.size && <p className="mt-1.5 text-sm opacity-70">Downloaded, {state.size}, transparent background.</p>}
-      {state.error && (
-        <p role="alert" className="mt-1.5 text-sm font-semibold text-gum-deep">
-          {state.error}
+    <div className="grid gap-4 sm:grid-cols-2">
+      <figure className={panel}>
+        <figcaption className="font-semibold">On the {product}</figcaption>
+        <div className="grid place-items-center">
+          <OrderMockup custom={custom} category={category} className="h-72 w-auto" />
+        </div>
+        <button
+          type="button"
+          className={button}
+          disabled={!print || busy}
+          onClick={async () => {
+            if (!print) return;
+            setBusy(true);
+            setError("");
+            try {
+              download(await renderMockupFile(custom, category, print), fileName.replace(/\.png$/, "-mockup.png"));
+            } catch (e) {
+              setError((e as Error).message || "Couldn't build the mockup.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Building mockup…" : "Download mockup (PNG)"}
+        </button>
+      </figure>
+
+      <figure className={panel}>
+        <figcaption className="font-semibold">Design only (print file)</figcaption>
+        <div className="flex h-72 items-center justify-center">
+          {print ? (
+            // eslint-disable-next-line @next/next/no-img-element -- generated in the browser
+            <img
+              src={print.url}
+              alt={`The customer's design on its own, ${print.W} × ${print.H} px`}
+              className={`max-h-full max-w-full rounded-lg ring-2 ring-grape/10 ${CHECKER}`}
+            />
+          ) : (
+            !error && <p className="text-sm opacity-60">Building the design…</p>
+          )}
+        </div>
+        <button type="button" className={button} disabled={!print} onClick={() => print && download(print.blob, fileName)}>
+          Download print file (PNG)
+        </button>
+      </figure>
+
+      {print && (
+        <p className="text-sm opacity-70 sm:col-span-2">
+          The print file is the whole print area ({print.W} × {print.H} px, transparent background) with every layer exactly where
+          the customer placed it. Upload it on Zink as the design for this product.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="text-sm font-semibold text-gum-deep sm:col-span-2">
+          {error}
         </p>
       )}
     </div>

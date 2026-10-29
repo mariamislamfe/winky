@@ -24,16 +24,18 @@ export function ProductCard({
   const quickAdd = product.category === "tote" && !product.customOnly && !soon;
   const hasSecond = product.images.length > 1;
   const art = (
-    <div className="absolute inset-[12%] flex items-center justify-center transition-transform duration-500 ease-[var(--ease-gum)] group-hover:-translate-y-2 group-hover:-rotate-3">
+    <div
+      className={`absolute inset-[12%] flex items-center justify-center ${soon ? "opacity-80" : "transition-transform duration-500 ease-[var(--ease-gum)] group-hover:-translate-y-2 group-hover:-rotate-3"}`}
+    >
       <ProductVisual
         product={product}
         decorative
         priority={priority}
         sizes="(min-width: 1280px) 22vw, (min-width: 1024px) 30vw, (min-width: 420px) 45vw, 90vw"
-        className={`size-full drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] ${hasSecond ? "transition-opacity duration-300 group-hover:opacity-0" : ""}`}
+        className={`size-full drop-shadow-[8px_10px_0_rgb(43_17_64/0.18)] ${hasSecond && !soon ? "transition-opacity duration-300 group-hover:opacity-0" : ""}`}
       />
       {/* second photo on hover (e.g. the back of a case) */}
-      {hasSecond && (
+      {hasSecond && !soon && (
         <ProductVisual
           product={product}
           image={1}
@@ -48,13 +50,13 @@ export function ProductCard({
   return (
     <article className="group relative">
       <div
-        className="relative aspect-[4/5] overflow-hidden rounded-[32px] transition-[border-radius] duration-500 ease-[var(--ease-gum)] group-hover:rounded-[48px]"
+        className={`relative aspect-[4/5] overflow-hidden rounded-[32px] ${soon ? "" : "transition-[border-radius] duration-500 ease-[var(--ease-gum)] group-hover:rounded-[48px]"}`}
         style={{ background: product.stage }}
       >
         {/* graphic motif that swells on hover */}
         <span
           aria-hidden
-          className="absolute top-1/2 left-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 scale-90 rounded-full bg-white/25 transition-transform duration-500 ease-[var(--ease-gum)] group-hover:scale-110"
+          className={`absolute top-1/2 left-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 scale-90 rounded-full bg-white/25 ${soon ? "" : "transition-transform duration-500 ease-[var(--ease-gum)] group-hover:scale-110"}`}
         />
         {morph ? (
           <ViewTransition name={`art-${product.slug}`} share="art-morph" default="none">
@@ -63,12 +65,15 @@ export function ProductCard({
         ) : (
           art
         )}
-        <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
-          {soon && (
-            <span className="rotate-[-6deg] rounded-full bg-grape px-3 py-1 text-sm font-bold text-milk shadow-[0_2px_0_rgb(43_17_64/0.2)]">
-              Coming soon
+        {/* coming soon: the card is a peek only, it doesn't open */}
+        {soon && (
+          <span className="absolute inset-0 grid place-items-center">
+            <span className="font-display -rotate-8 rounded-full bg-grape px-6 py-2 text-3xl text-milk shadow-[0_4px_0_rgb(43_17_64/0.25)]">
+              Soon
             </span>
-          )}
+          </span>
+        )}
+        <div className="absolute top-4 left-4 flex flex-wrap gap-1.5">
           {product.isNew && !soon && (
             <span className="rotate-[-6deg] rounded-full bg-butter px-3 py-1 text-sm font-bold text-grape shadow-[0_2px_0_rgb(43_17_64/0.2)]">
               New
@@ -80,15 +85,19 @@ export function ProductCard({
       <div className="mt-3 flex items-start justify-between gap-3 px-1">
         <div className="min-w-0">
           <h3 className="text-lg leading-tight font-semibold">
-            <Link href={href} className="after:absolute after:inset-0 after:rounded-[32px] after:content-['']">
-              {product.name}
-            </Link>
+            {soon ? (
+              product.name
+            ) : (
+              <Link href={href} className="after:absolute after:inset-0 after:rounded-[32px] after:content-['']">
+                {product.name}
+              </Link>
+            )}
           </h3>
           <p className="mt-0.5 text-sm opacity-70">
-            {product.customOnly ? "Make it in the customizer" : CATEGORY_LABEL[product.category].one}
+            {soon ? `${CATEGORY_LABEL[product.category].one}, coming soon` : product.customOnly ? "Make it in the customizer" : CATEGORY_LABEL[product.category].one}
           </p>
         </div>
-        <span className="shrink-0 text-lg font-semibold tabular-nums">{formatPrice(product.price)}</span>
+        {!soon && <span className="shrink-0 text-lg font-semibold tabular-nums">{formatPrice(product.price)}</span>}
       </div>
 
       {quickAdd && (

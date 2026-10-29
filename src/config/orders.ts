@@ -6,11 +6,17 @@ import type { OrderStatus } from "@/lib/types";
  * Orders are cash on delivery: Zink prints, delivers and collects the cash.
  */
 
+/**
+ * Delivery destinations: the 27 governorates, plus the areas the courier
+ * prices on their own (Ain Sokhna, Hurghada, Sharm El Sheikh, North Coast),
+ * each listed after its governorate.
+ */
 export const GOVERNORATES = [
   "Cairo", "Giza", "Alexandria", "Qalyubia", "Sharqia", "Dakahlia", "Gharbia",
   "Monufia", "Beheira", "Kafr El Sheikh", "Damietta", "Port Said", "Ismailia",
-  "Suez", "North Sinai", "South Sinai", "Red Sea", "Faiyum", "Beni Suef", "Minya",
-  "Asyut", "Sohag", "Qena", "Luxor", "Aswan", "Matrouh", "New Valley",
+  "Suez", "Ain Sokhna", "North Sinai", "South Sinai", "Sharm El Sheikh", "Red Sea", "Hurghada",
+  "Faiyum", "Beni Suef", "Minya", "Asyut", "Sohag", "Qena", "Luxor", "Aswan",
+  "Matrouh", "North Coast", "New Valley",
 ] as const;
 
 export type Governorate = (typeof GOVERNORATES)[number];

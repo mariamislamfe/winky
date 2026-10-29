@@ -21,6 +21,17 @@ function SoonBadge() {
   );
 }
 
+/** Sits on top of each bag while totes are coming soon. */
+function SoonSticker() {
+  return (
+    <span aria-hidden className="absolute inset-0 grid place-items-center">
+      <span className="font-display -rotate-8 rounded-full bg-grape px-4 py-1 text-2xl text-milk shadow-[0_3px_0_rgb(43_17_64/0.25)] md:text-3xl">
+        Soon
+      </span>
+    </span>
+  );
+}
+
 /** Signed distance from the active slide, wrapped into [-n/2, n/2). */
 function offsetOf(i: number, active: number, n: number) {
   let o = i - active;
@@ -146,7 +157,13 @@ export function ToteCarousel() {
                 {/* hook */}
                 <div aria-hidden className="mx-auto -mt-3 h-12 w-6 rounded-b-full border-[5px] border-t-0 border-grape/40" />
                 <div className="tote-swing -mt-[9%] origin-top">
-                  {isActive ? (
+                  {isActive && soon ? (
+                    // coming soon: a peek only, the bag doesn't open
+                    <div className="relative">
+                      <ProductVisual product={t} decorative className="h-auto w-full drop-shadow-[14px_18px_0_rgb(43_17_64/0.3)]" priority={i === 0} />
+                      <SoonSticker />
+                    </div>
+                  ) : isActive ? (
                     <Link
                       href={`/shop/${t.slug}`}
                       draggable={false}
@@ -161,10 +178,11 @@ export function ToteCarousel() {
                       type="button"
                       tabIndex={visible ? 0 : -1}
                       onClick={() => !dragged.current && go(o)}
-                      className="block w-full rounded-3xl"
+                      className="relative block w-full rounded-3xl"
                       aria-label={`Bring ${t.name} to the front`}
                     >
                       <ProductVisual product={t} decorative className="h-auto w-full drop-shadow-[10px_12px_0_rgb(43_17_64/0.3)]" />
+                      {soon && <SoonSticker />}
                     </button>
                   )}
                 </div>
@@ -202,10 +220,14 @@ export function ToteCarousel() {
                 <CarouselButtons onPrev={() => go(-1)} onNext={() => go(1)} />
               </div>
             )}
-            <Link href={`/shop/${product.slug}`} className="btn btn-ghost">
-              View details
-            </Link>
-            {!soon && <AddToBagButton product={product} />}
+            {!soon && (
+              <>
+                <Link href={`/shop/${product.slug}`} className="btn btn-ghost">
+                  View details
+                </Link>
+                <AddToBagButton product={product} />
+              </>
+            )}
           </div>
         </div>
       </div>

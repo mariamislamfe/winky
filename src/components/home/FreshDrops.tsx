@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
-import { CATEGORY_LABEL } from "@/lib/catalog";
+import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { gsap, MQ, ScrollTrigger, useGSAP } from "@/lib/gsap";
 
@@ -13,7 +13,10 @@ const TILT = [-5, 4, -2, 6, -4, 3];
 /** New designs, slapped onto a sticker sheet. */
 export function FreshDrops() {
   const root = useRef<HTMLElement>(null);
-  const drops = useCatalog().fresh().slice(0, 8);
+  const drops = useCatalog()
+    .fresh()
+    .filter((p) => !comingSoon(p.category))
+    .slice(0, 8);
 
   useGSAP(
     () => {

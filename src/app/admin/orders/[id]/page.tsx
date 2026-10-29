@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { CopyButton } from "@/components/admin/CopyButton";
-import { OrderMockup, PrintFileButton } from "@/components/admin/CustomOrderTools";
+import { DesignFiles, OrderMockup } from "@/components/admin/CustomOrderTools";
 import { OrderAdminForm } from "@/components/admin/OrderAdminForm";
 import { PLAIN_BASES, TEXT_COLORS, TEXT_STYLES } from "@/config/customization";
 import { DEPOSIT_STATUSES, ORDER_STATUSES } from "@/config/orders";
@@ -161,17 +161,11 @@ function LineCard({ line, index, order }: { line: OrderLine; index: number; orde
       </div>
 
       {line.custom && (
-        <div className="mt-5 grid gap-5 border-t-2 border-grape/10 pt-5 md:grid-cols-[minmax(0,14rem)_1fr]">
-          <div className="grid place-items-center rounded-2xl bg-milk p-4">
-            <OrderMockup custom={line.custom} category={line.category} className="h-72 w-auto" />
-          </div>
+        <div className="mt-5 border-t-2 border-grape/10 pt-5">
+          <DesignFiles custom={line.custom} category={line.category} fileName={`${order.number}-item${index + 1}-print.png`} />
           <div>
-            <PrintFileButton custom={line.custom} category={line.category} fileName={`${order.number}-item${index + 1}-print.png`} />
-            <p className="mt-2 text-sm opacity-70">
-              The whole print area as a transparent PNG with every layer exactly where the customer placed it. Upload it on Zink as
-              the design for this product.
-            </p>
-            <ol className="mt-4 grid gap-3">
+            <h3 className="mt-5 font-semibold">Layers</h3>
+            <ol className="mt-2 grid gap-3">
               {line.custom.layers.map((layer, k) => (
                 <li key={layer.id} className="rounded-2xl bg-milk p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">

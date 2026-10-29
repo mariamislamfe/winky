@@ -27,7 +27,7 @@ Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. E
 
 - Customer name, mobile (normalized to 01xxxxxxxxx), governorate, city, address and notes, with copy buttons for entering them on Zink.
 - Every item with its phone model, quantity and price (recalculated on the server from the catalog, never trusted from the browser).
-- For custom items: a mockup, each layer's exact placement, the customer's **original file** (stored exactly as uploaded), and **Download print file**, a transparent PNG of the whole print area with every layer in place (3000 px wide, or 300 DPI once `PRINT_AREA_CM` is set).
+- For custom items, side by side: the design **on the product** (Download mockup, a PNG on white) and the **design only** (Download print file, a transparent PNG of the whole print area with every layer in place, 3000 px wide or 300 DPI once `PRINT_AREA_CM` is set). Below them, each layer's exact placement and the customer's **original file** (stored exactly as uploaded).
 - Status (New, Placed on Zink, Shipped, Delivered, Cancelled), the Zink order number and a private note.
 
 Placing the order on Zink is still manual until Zink offers an API.
@@ -35,8 +35,8 @@ Placing the order on Zink is still manual until Zink offers an API.
 ## Prices, delivery and payments
 
 - **Phone cases** all cost **EGP 120** and custom cases **EGP 150** (120 + 30 for printing your design): `CASE_PRICE` and `PRICING` in `src/config/pricing.ts`. This applies to every case, whatever price is saved on it. Tote bags take their price from the dashboard.
-- **Tote bags** are "Coming soon": shown, but they can't be ordered (`totesComingSoon` in `src/config/site.ts`).
-- **Delivery fees** are set per governorate in the dashboard (**Delivery**) and added to the order total at checkout. A governorate without a fee is confirmed on the phone.
+- **Tote bags** are "Coming soon": shown with a "Soon" sticker, but they don't open and can't be ordered (`totesComingSoon` in `src/config/site.ts`).
+- **Delivery fees** are set per governorate in the dashboard (**Delivery**) and added to the order total at checkout. Besides the 27 governorates, the list has the areas the courier prices on their own (Ain Sokhna, Hurghada, Sharm El Sheikh, North Coast). A destination without a fee is confirmed on the phone.
 - **Deposit:** every order needs an **InstaPay deposit of EGP 100 per item** (`src/config/payments.ts`, never more than the order total); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
 - Orders are sent to `/api/orders` (a route handler, so a customer who opened checkout before a new deploy can still order).
 
@@ -75,7 +75,6 @@ Any Node.js host works, including **Vercel**: nothing is stored on the server.
 
 | Area | Where |
 | --- | --- |
-| Delivery fees | Dashboard → **Delivery**. |
 | Print area size | `PRINT_AREA_CM` in `src/config/customization.ts` (ask Zink for their print specs). |
 
 ## Structure

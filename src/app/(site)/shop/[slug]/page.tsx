@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageBlink } from "@/components/layout/PageBlink";
 import { ProductCard } from "@/components/shop/ProductCard";
 import { ProductDetail } from "@/components/shop/ProductDetail";
+import { comingSoon } from "@/lib/catalog";
 import { descriptionFor } from "@/lib/models";
 import { getStoreProducts } from "@/lib/server/catalog-data";
 
@@ -42,6 +43,8 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
   const products = await getStoreProducts();
   const product = products.find((p) => p.slug === slug);
   if (!product) notFound();
+  // Coming-soon products are a peek on the shop only, they don't have a page yet
+  if (comingSoon(product.category)) redirect(`/shop?category=${product.category}`);
 
   const related = products.filter((p) => p.category === product.category && p.slug !== product.slug).slice(0, 4);
 
