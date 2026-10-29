@@ -22,6 +22,7 @@
   --animate-sway: sway 5.5s ease-in-out infinite;
   --animate-bob: bob 4.2s ease-in-out infinite;
   --animate-spin-slow: spin 18s linear infinite;
+  --animate-nudge: nudge 1.4s ease-in-out infinite;
 
   @keyframes sway {
     0%, 100% { transform: rotate(-2.2deg); }
@@ -30,6 +31,10 @@
   @keyframes bob {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
+  }
+  @keyframes nudge {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(6px); }
   }
 }
 

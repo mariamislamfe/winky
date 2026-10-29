@@ -30,6 +30,8 @@ export function CaseFan() {
   const n = cases.length;
   const [active, setActive] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  // The swipe hint fades once the hand has been swiped
+  const [swiped, setSwiped] = useState(false);
   const reduce = useReducedMotion();
 
   if (n === 0) return <CasesComingSoon />;
@@ -192,7 +194,10 @@ export function CaseFan() {
           {/* The hand of cards, right under the stage */}
           {n > 1 && (
             <div className="relative mx-auto mt-2 w-full max-w-[1400px]">
-              <div className="no-scrollbar flex snap-x snap-mandatory items-end gap-1 overflow-x-auto px-5 pt-6 pb-3 md:justify-center md:overflow-visible md:px-10">
+              <div
+                onScroll={(e) => !swiped && e.currentTarget.scrollLeft > 24 && setSwiped(true)}
+                className="no-scrollbar flex snap-x snap-mandatory items-end gap-1 overflow-x-auto px-5 pt-6 pb-3 md:justify-center md:overflow-visible md:px-10"
+              >
                 {hand.map(({ c, i }, k) => {
                   const off = k - mid;
                   return (
@@ -220,6 +225,16 @@ export function CaseFan() {
                   );
                 })}
               </div>
+              {/* On phones the hand doesn't fit the screen: say there's more to the side */}
+              <p
+                aria-hidden
+                className={`flex items-center justify-center gap-2 pb-1 text-sm font-semibold transition-opacity duration-500 md:hidden ${swiped ? "opacity-0" : "opacity-85"}`}
+              >
+                Swipe for more cases
+                <svg viewBox="0 0 24 24" className="size-5 motion-safe:animate-nudge">
+                  <path d="M4 12h15m-5-5 5 5-5 5" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </p>
             </div>
           )}
         </LayoutGroup>

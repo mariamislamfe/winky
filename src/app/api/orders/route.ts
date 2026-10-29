@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { notifyNewOrder } from "@/lib/server/notify";
 import { createOrder, type CheckoutErrors, type DepositInput } from "@/lib/server/orders";
 import type { CartLine, OrderCustomer } from "@/lib/types";
 
@@ -29,6 +31,9 @@ export async function POST(request: Request) {
     const res = await createOrder(input, key);
     if ("errors" in res) return Response.json({ ok: false, errors: res.errors } satisfies PlaceOrderResult);
     const o = res.order;
+    // Ping the shop's phone once the customer has their answer
+    const origin = process.env.SITE_URL || new URL(request.url).origin;
+    after(() => notifyNewOrder(o, origin));
     return Response.json({
       ok: true,
       number: o.number,

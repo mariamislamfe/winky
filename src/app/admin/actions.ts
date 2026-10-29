@@ -14,8 +14,10 @@ import {
   type FieldErrors,
 } from "@/lib/server/products";
 import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
+import { sendNotification } from "@/lib/server/notify";
 import {
   addCustomStageColor,
+  ensureNotifyTopic,
   HEX_COLOR,
   removeCustomStageColor,
   SETTINGS_TAG,
@@ -77,6 +79,24 @@ export async function saveDeliveryFees(_prev: DeliveryState, form: FormData): Pr
   await writeDeliveryFees(fees);
   updateTag(SETTINGS_TAG);
   return { saved: true };
+}
+
+export type NotifyState = { sent?: number; error?: string };
+
+/** Sends a test notification to the shop's channel (making the channel first if needed). */
+export async function sendTestNotification(prev: NotifyState): Promise<NotifyState> {
+  await requireAdmin();
+  try {
+    await sendNotification(await ensureNotifyTopic(), {
+      title: "WINKY notifications are on",
+      message: "New orders will show up here. Tap one to open it in the dashboard.",
+      tags: ["tada"],
+    });
+    return { sent: (prev.sent ?? 0) + 1 };
+  } catch (err) {
+    console.error("Test notification failed", err);
+    return { error: "Couldn't send it. Check your connection and try again." };
+  }
 }
 
 /** Saves a showcase colour picked in the dashboard so every product can use it. */

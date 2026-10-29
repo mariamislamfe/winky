@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { cacheLife, cacheTag } from "next/cache";
 import { STAGE_COLORS } from "@/config/catalog";
 import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
@@ -6,11 +7,12 @@ import { storage } from "./supabase";
 
 /**
  * Small store-wide settings saved from the dashboard (custom showcase
- * colours, delivery fees), kept as JSON files in the private "settings"
+ * colours, delivery fees, the order notification channel), kept as JSON files in the private "settings"
  * bucket (no database table needed).
  */
 const STAGE_COLORS_FILE = "stage-colors.json";
 const DELIVERY_FEES_FILE = "delivery-fees.json";
+const NOTIFY_FILE = "notify.json";
 const MAX_CUSTOM_COLORS = 24;
 
 export const SETTINGS_TAG = "settings";
@@ -82,4 +84,27 @@ export async function getDeliveryFees(): Promise<DeliveryFees> {
   cacheTag(SETTINGS_TAG);
   cacheLife("minutes");
   return readDeliveryFees();
+}
+
+// ── Order notifications ──────────────────────────────────────────
+
+const NOTIFY_TOPIC = /^winky-[A-Za-z0-9_-]{16,40}$/;
+
+/** The private ntfy channel new orders are sent to, or null before it's set up. */
+export async function readNotifyTopic(): Promise<string | null> {
+  const raw = await readJson(NOTIFY_FILE);
+  const topic = raw && typeof raw === "object" ? (raw as { topic?: unknown }).topic : null;
+  return typeof topic === "string" && NOTIFY_TOPIC.test(topic) ? topic : null;
+}
+
+/**
+ * The channel name works like a password (anyone who knows it can read the
+ * notifications), so it's long and random, made once on first use.
+ */
+export async function ensureNotifyTopic(): Promise<string> {
+  const existing = await readNotifyTopic();
+  if (existing) return existing;
+  const topic = `winky-${randomBytes(15).toString("base64url")}`;
+  await writeJson(NOTIFY_FILE, { topic });
+  return topic;
 }

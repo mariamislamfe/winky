@@ -27,10 +27,12 @@ Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. E
 
 - Customer name, mobile (normalized to 01xxxxxxxxx), governorate, city, address and notes, with copy buttons for entering them on Zink.
 - Every item with its phone model, quantity and price (recalculated on the server from the catalog, never trusted from the browser).
-- For custom items, side by side: the design **on the product** (Download mockup, a PNG on white) and the **design only** (Download print file, a transparent PNG of the whole print area with every layer in place, 3000 px wide or 300 DPI once `PRINT_AREA_CM` is set). Below them, each layer's exact placement and the customer's **original file** (stored exactly as uploaded).
+- For custom items, side by side: the design **on the product** (Download mockup, a PNG on white) and the design **ready to print** (Download ready-to-print design, a transparent PNG of the whole print area with every layer in place, 3000 px wide or 300 DPI once `PRINT_AREA_CM` is set). Below them, each layer's exact placement and the customer's **original file** (stored exactly as uploaded).
 - Status (New, Placed on Zink, Shipped, Delivered, Cancelled), the Zink order number and a private note.
 
 Placing the order on Zink is still manual until Zink offers an API.
+
+**Phone notifications:** every new order sends a notification through [ntfy](https://ntfy.sh) (free, no account). Set it up in the dashboard under **Notifications**: install the ntfy app, subscribe to the store's private channel shown there, and send a test. Tapping a notification opens the order. The channel name is random and stored in the `settings` bucket; keep it private.
 
 ## Prices, delivery and payments
 
@@ -51,7 +53,7 @@ Everything the store saves lives in Supabase, so the site itself keeps nothing o
 | Product photos | `products` storage bucket (public) |
 | Customers' original designs | `designs` bucket (private) |
 | InstaPay screenshots | `receipts` bucket (private) |
-| Saved showcase colours, delivery fees | `settings` bucket (private, JSON files) |
+| Saved showcase colours, delivery fees, notification channel | `settings` bucket (private, JSON files) |
 
 Only the server talks to Supabase, with the **service role key**. Row level security is on with no policies, so the public key can't read anything. Customers' and dashboard uploads go straight from the browser to storage with one-time signed links from `/api/uploads`; the buckets only accept PNG, JPG and WebP within the size limits.
 

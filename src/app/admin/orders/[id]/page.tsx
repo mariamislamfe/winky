@@ -175,9 +175,10 @@ function LineCard({ line, index, order }: { line: OrderLine; index: number; orde
                     {layer.kind === "image" && layer.fileId && (
                       <a
                         href={`/api/admin/designs/${layer.fileId}?download=${encodeURIComponent(`${order.number}-${layer.name.replace(/\.[^.]+$/, "")}.${layer.fileId.split(".").pop()}`)}`}
-                        className="rounded-full bg-grape px-3 py-1.5 text-xs font-bold text-milk"
+                        className="rounded-full px-3 py-1.5 text-xs font-bold ring-2 ring-grape/20 hover:ring-grape/50"
+                        title="The file exactly as uploaded, before the customer resized or moved it"
                       >
-                        Download original
+                        Original upload (not resized)
                       </a>
                     )}
                     {layer.kind === "text" && <CopyButton value={layer.text} label="text" />}

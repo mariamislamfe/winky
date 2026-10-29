@@ -197,7 +197,10 @@ export function DesignFiles({ custom, category, fileName }: { custom: Customizat
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <figure className={panel}>
-        <figcaption className="font-semibold">On the {product}</figcaption>
+        <figcaption>
+          <span className="font-semibold">On the {product}</span>
+          <span className="block text-sm opacity-70">What the customer saw</span>
+        </figcaption>
         <div className="grid place-items-center">
           <OrderMockup custom={custom} category={category} className="h-72 w-auto" />
         </div>
@@ -223,7 +226,10 @@ export function DesignFiles({ custom, category, fileName }: { custom: Customizat
       </figure>
 
       <figure className={panel}>
-        <figcaption className="font-semibold">Design only (print file)</figcaption>
+        <figcaption>
+          <span className="font-semibold">Ready to print</span>
+          <span className="block text-sm opacity-70">Design only, sized and placed exactly like the customer did</span>
+        </figcaption>
         <div className="flex h-72 items-center justify-center">
           {print ? (
             // eslint-disable-next-line @next/next/no-img-element -- generated in the browser
@@ -237,14 +243,15 @@ export function DesignFiles({ custom, category, fileName }: { custom: Customizat
           )}
         </div>
         <button type="button" className={button} disabled={!print} onClick={() => print && download(print.blob, fileName)}>
-          Download print file (PNG)
+          Download ready-to-print design
         </button>
       </figure>
 
       {print && (
         <p className="text-sm opacity-70 sm:col-span-2">
-          The print file is the whole print area ({print.W} × {print.H} px, transparent background) with every layer exactly where
-          the customer placed it. Upload it on Zink as the design for this product.
+          The ready-to-print design covers the whole back of the {product} ({print.W} × {print.H} px, transparent background), with
+          every picture and text already at the size, position and angle the customer chose. Upload it on Zink as it is, no
+          resizing needed.
         </p>
       )}
       {error && (
