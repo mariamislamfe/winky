@@ -7,7 +7,8 @@ import { CaseMockup } from "@/components/art/CaseMockup";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
 import { AddToBagButton } from "@/components/shop/AddToBagButton";
-import { formatPrice } from "@/lib/format";
+import { Price } from "@/components/shop/Price";
+import { wasPrice } from "@/lib/catalog";
 
 const SECTION = "relative overflow-hidden rounded-t-[min(14vw,140px)] pt-16 pb-12 md:pt-20 md:pb-14";
 
@@ -143,7 +144,7 @@ export function CaseFan() {
                     )}
                     <h3 className="font-display mt-1 text-[clamp(1.5rem,4vw,3.2rem)] leading-[0.95]">{product.name}</h3>
                     {product.tagline && <p className="mt-1.5 hidden text-lg opacity-90 md:block">{product.tagline}</p>}
-                    <p className="mt-1.5 text-lg font-semibold tabular-nums">{formatPrice(product.price)}</p>
+                    <Price value={product.price} was={wasPrice(product.category)} className="mt-1.5 text-lg font-semibold" />
                   </motion.div>
                 </AnimatePresence>
               </div>

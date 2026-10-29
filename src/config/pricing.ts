@@ -23,6 +23,12 @@ export const PRICING = {
 } as const;
 
 /**
+ * "Was" prices shown crossed out next to the real price, so the offer shows:
+ * cases EGP 200 → 120, custom cases EGP 250 → 150. Display only, never charged.
+ */
+export const COMPARE_AT = { case: 20000, customCase: 25000 } as const;
+
+/**
  * What WINKY keeps from each piece sold (minor units), used by the finance
  * page: EGP 38 per case, EGP 68 per custom case. Totes aren't on sale yet:
  * set theirs when they launch.

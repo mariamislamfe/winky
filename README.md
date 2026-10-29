@@ -42,7 +42,7 @@ Profit per month or all time: **EGP 38 per case and EGP 68 per custom case** (`P
 
 ## Prices, delivery and payments
 
-- **Phone cases** all cost **EGP 120** and custom cases **EGP 150** (120 + 30 for printing your design): `CASE_PRICE` and `PRICING` in `src/config/pricing.ts`. This applies to every case, whatever price is saved on it. Tote bags take their price from the dashboard.
+- **Phone cases** all cost **EGP 120** and custom cases **EGP 150** (120 + 30 for printing your design): `CASE_PRICE` and `PRICING` in `src/config/pricing.ts`. This applies to every case, whatever price is saved on it. The shop shows the old price crossed out next to them, **~~EGP 200~~ → 120** and **~~EGP 250~~ → 150** (`COMPARE_AT`, display only). Tote bags take their price from the dashboard.
 - **Tote bags** are "Coming soon": shown with a "Soon" sticker, but they don't open and can't be ordered (`totesComingSoon` in `src/config/site.ts`).
 - **Delivery fees** are set per governorate in the dashboard (**Delivery**) and added to the order total at checkout. Besides the 27 governorates, the list has the areas the courier prices on their own (Ain Sokhna, Hurghada, Sharm El Sheikh, North Coast). A destination without a fee is confirmed on the phone.
 - **Deposit:** every order needs an **InstaPay deposit of EGP 100 per item** (`src/config/payments.ts`, never more than the order total); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.

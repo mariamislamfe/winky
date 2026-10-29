@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { ViewTransition } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
-import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
+import { Price } from "@/components/shop/Price";
+import { PRICING } from "@/config/pricing";
+import { CATEGORY_LABEL, comingSoon, wasPrice } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
 export function ProductCard({
@@ -23,6 +24,8 @@ export function ProductCard({
   const soon = comingSoon(product.category);
   const quickAdd = product.category === "tote" && !product.customOnly && !soon;
   const hasSecond = product.images.length > 1;
+  // A blank "make your own" product shows what a custom one costs
+  const price = product.customOnly ? product.price + PRICING.customizationFee[product.category] : product.price;
   const art = (
     <div
       className={`absolute inset-[12%] flex items-center justify-center ${soon ? "opacity-80" : "transition-transform duration-500 ease-[var(--ease-gum)] group-hover:-translate-y-2 group-hover:-rotate-3"}`}
@@ -97,7 +100,7 @@ export function ProductCard({
             {soon ? `${CATEGORY_LABEL[product.category].one}, coming soon` : product.customOnly ? "Make it in the customizer" : CATEGORY_LABEL[product.category].one}
           </p>
         </div>
-        {!soon && <span className="shrink-0 text-lg font-semibold tabular-nums">{formatPrice(product.price)}</span>}
+        {!soon && <Price value={price} was={wasPrice(product.category, product.customOnly)} stacked className="shrink-0 text-lg font-semibold" />}
       </div>
 
       {quickAdd && (

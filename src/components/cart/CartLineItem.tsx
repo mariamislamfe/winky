@@ -5,10 +5,10 @@ import { motion } from "motion/react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
-import { linePrice } from "@/lib/catalog";
+import { Price } from "@/components/shop/Price";
+import { linePrice, wasPrice } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 import { describeCustom } from "@/lib/describe";
-import { formatPrice } from "@/lib/format";
 import { modelLabel } from "@/lib/models";
 import type { CartLine } from "@/lib/types";
 
@@ -39,9 +39,11 @@ export function CartLineItem({ line, onNavigate }: { line: CartLine; onNavigate?
           <Link href={href} onClick={onNavigate} className="-my-2.5 inline-block py-2.5 font-semibold leading-tight hover:underline">
             {line.custom ? `Custom ${product.category === "tote" ? "tote" : "case"}` : product.name}
           </Link>
-          <span className="shrink-0 font-semibold tabular-nums">
-            {unit == null ? "Price TBA" : formatPrice(unit * line.quantity)}
-          </span>
+          {unit == null ? (
+            <span className="shrink-0 font-semibold">Price TBA</span>
+          ) : (
+            <Price value={unit * line.quantity} was={(wasPrice(product.category, !!line.custom) ?? 0) * line.quantity} stacked className="shrink-0 font-semibold" />
+          )}
         </div>
         {line.variant && <p className="text-sm opacity-75">For {modelLabel(line.variant)}</p>}
         {line.custom && (

@@ -19,7 +19,8 @@ import {
 } from "@/config/customization";
 import { PHONE_MODELS } from "@/config/catalog";
 import { ModelPicker } from "@/components/shop/ModelPicker";
-import { comingSoon, CUSTOM_BASES } from "@/lib/catalog";
+import { Price } from "@/components/shop/Price";
+import { comingSoon, CUSTOM_BASES, wasPrice } from "@/lib/catalog";
 import { describePlacement, layerTitle } from "@/lib/describe";
 import { formatPrice } from "@/lib/format";
 import { prepareUpload, UploadError } from "@/lib/image";
@@ -523,7 +524,7 @@ export function Customizer() {
             </div>
             <div className="mt-2 flex justify-between text-xl font-bold">
               <span>Each</span>
-              <span className="tabular-nums">{formatPrice(unit)}</span>
+              <Price value={unit} was={wasPrice(category, true)} />
             </div>
             <p className="mt-2 text-sm leading-snug opacity-75">
               Your original file and its exact placement are sent to us with your order for printing.

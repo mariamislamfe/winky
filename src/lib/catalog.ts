@@ -1,5 +1,5 @@
 import { PLAIN_BASES } from "@/config/customization";
-import { PRICING } from "@/config/pricing";
+import { COMPARE_AT, PRICING } from "@/config/pricing";
 import { SITE } from "@/config/site";
 import type { CartLine, Category, Product } from "./types";
 
@@ -61,6 +61,12 @@ export function linePrice(line: CartLine, products: Product[]): number | null {
   const product = findProduct(products, line.slug);
   if (!product) return null;
   return product.price + (line.custom ? PRICING.customizationFee[product.category] : 0);
+}
+
+/** The crossed-out "was" price for a product, plain or customized, or null when there's none. */
+export function wasPrice(category: Category, custom = false) {
+  if (category !== "case") return null;
+  return custom ? COMPARE_AT.customCase : COMPARE_AT.case;
 }
 
 /** Totes that can't be ordered yet (SITE.totesComingSoon). */

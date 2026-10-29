@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
-import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
-import { formatPrice } from "@/lib/format";
+import { Price } from "@/components/shop/Price";
+import { CATEGORY_LABEL, comingSoon, wasPrice } from "@/lib/catalog";
 import { gsap, MQ, ScrollTrigger, useGSAP } from "@/lib/gsap";
 
 const TILT = [-5, 4, -2, 6, -4, 3];
@@ -83,7 +83,7 @@ export function FreshDrops() {
                 <span className="block px-2 pt-3 font-semibold leading-tight">{p.name}</span>
                 <span className="flex flex-wrap items-baseline justify-between gap-x-2 px-2 pt-0.5 pb-1 text-sm">
                   <span className="whitespace-nowrap opacity-65">{CATEGORY_LABEL[p.category].one}</span>
-                  <span className="whitespace-nowrap font-semibold tabular-nums">{formatPrice(p.price)}</span>
+                  <Price value={p.price} was={wasPrice(p.category)} className="whitespace-nowrap font-semibold" />
                 </span>
               </Link>
             </li>

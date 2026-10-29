@@ -5,8 +5,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { useCatalog } from "@/components/catalog/CatalogProvider";
-import { comingSoon } from "@/lib/catalog";
-import { formatPrice } from "@/lib/format";
+import { Price } from "@/components/shop/Price";
+import { comingSoon, wasPrice } from "@/lib/catalog";
 import type { Product } from "@/lib/types";
 
 const SWAP_MS = 3400;
@@ -106,7 +106,7 @@ export function HeroSpotlight() {
         >
           <Link href={`/shop/${product.slug}`} className="flex min-h-11 items-center gap-2 rounded-2xl px-3 py-2.5 md:block md:px-4">
             <span className="truncate text-xs leading-tight font-bold md:block md:text-sm md:whitespace-normal">{product.name}</span>
-            <span className="shrink-0 text-xs font-semibold tabular-nums opacity-80 md:mt-0.5 md:block md:text-sm">{formatPrice(product.price)}</span>
+            <Price value={product.price} was={wasPrice(product.category)} className="shrink-0 text-xs font-semibold md:mt-0.5 md:flex md:text-sm" />
           </Link>
         </motion.div>
       </AnimatePresence>

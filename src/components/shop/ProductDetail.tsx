@@ -6,7 +6,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState, ViewTransition } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { CATEGORY_LABEL, comingSoon } from "@/lib/catalog";
+import { Price } from "@/components/shop/Price";
+import { CATEGORY_LABEL, comingSoon, wasPrice } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { descriptionFor, modelsFor } from "@/lib/models";
 import type { Product } from "@/lib/types";
@@ -22,6 +23,7 @@ export function ProductDetail({ product }: { product: Product }) {
   const [showModelHint, setShowModelHint] = useState(false);
   const isCase = product.category === "case";
   const soon = comingSoon(product.category);
+  const was = wasPrice(product.category);
   const needsModel = isCase;
   const description = descriptionFor(product);
 
@@ -94,7 +96,12 @@ export function ProductDetail({ product }: { product: Product }) {
           </ol>
         </nav>
         <h1 className="font-display mt-4 text-[clamp(2.8rem,6vw,5rem)] leading-[0.9]">{product.name}</h1>
-        <p className="mt-4 text-2xl font-semibold tabular-nums">{formatPrice(product.price)}</p>
+        <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xl font-semibold">
+          <Price value={product.price} was={was} />
+          {was && (
+            <span className="-rotate-3 rounded-full bg-gum px-3 py-1 text-sm font-bold text-milk">Save {formatPrice(was - product.price)}</span>
+          )}
+        </p>
         {product.tagline && <p className="mt-6 max-w-[48ch] text-xl font-medium">{product.tagline}</p>}
         {description && (
           <div className="mt-3 max-w-[56ch] space-y-3 text-lg opacity-85">
