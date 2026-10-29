@@ -43,3 +43,10 @@ next-env.d.ts
 
 # product data + photos uploaded from the dashboard (back these up!)
 /data/
+
+# Private / local files
+.env
+.env*.local
+CLAUDE.md
+AGENTS.md
+.claude/
