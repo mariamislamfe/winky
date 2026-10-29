@@ -1,8 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { ORDER_STATUSES } from "@/config/orders";
 import { requireAdmin } from "@/lib/server/auth";
-import { updateOrder } from "@/lib/server/orders";
+import { removeOrder, updateOrder } from "@/lib/server/orders";
 import type { DepositStatus, OrderStatus } from "@/lib/types";
 
 export type OrderUpdateState = { saved?: boolean; error?: string };
@@ -21,4 +22,10 @@ export async function saveOrderAdmin(id: string, _prev: OrderUpdateState, form: 
   });
   if (!updated) return { error: "This order no longer exists." };
   return { saved: true };
+}
+
+export async function deleteOrder(id: string) {
+  await requireAdmin();
+  await removeOrder(id);
+  redirect("/admin/orders?deleted=1");
 }

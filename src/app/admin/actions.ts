@@ -1,6 +1,6 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkPassword, adminConfigured, createSession, destroySession, requireAdmin } from "@/lib/server/auth";
 import { PRODUCTS_TAG } from "@/lib/server/catalog-data";
@@ -14,14 +14,16 @@ import {
   type FieldErrors,
 } from "@/lib/server/products";
 import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
-import { sendNotification } from "@/lib/server/notify";
+import { requestOrigin, sendPush } from "@/lib/server/notify";
 import {
   addCustomStageColor,
-  ensureNotifyTopic,
+  addPushSubscription,
   HEX_COLOR,
   removeCustomStageColor,
+  removePushSubscriptions,
   SETTINGS_TAG,
   writeDeliveryFees,
+  type PushDevice,
 } from "@/lib/server/settings";
 
 export type LoginState = { error?: string };
@@ -81,22 +83,36 @@ export async function saveDeliveryFees(_prev: DeliveryState, form: FormData): Pr
   return { saved: true };
 }
 
-export type NotifyState = { sent?: number; error?: string };
+// ── Order notifications ──────────────────────────────────────────
 
-/** Sends a test notification to the shop's channel (making the channel first if needed). */
-export async function sendTestNotification(prev: NotifyState): Promise<NotifyState> {
+/** Turns notifications on for this phone (its push subscription from the browser). */
+export async function savePushSubscription(subscription: unknown, label: string) {
   await requireAdmin();
-  try {
-    await sendNotification(await ensureNotifyTopic(), {
-      title: "WINKY notifications are on",
-      message: "New orders will show up here. Tap one to open it in the dashboard.",
-      tags: ["tada"],
-    });
-    return { sent: (prev.sent ?? 0) + 1 };
-  } catch (err) {
-    console.error("Test notification failed", err);
-    return { error: "Couldn't send it. Check your connection and try again." };
+  const s = subscription as PushDevice["subscription"] | null;
+  if (typeof s?.endpoint !== "string" || !s.endpoint.startsWith("https://") || typeof s.keys?.p256dh !== "string" || typeof s.keys?.auth !== "string") {
+    throw new Error("Not a push subscription");
   }
+  await addPushSubscription({
+    subscription: { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh, auth: s.keys.auth } },
+    label: String(label).slice(0, 40) || "Phone",
+    addedAt: new Date().toISOString(),
+  });
+  refresh();
+}
+
+export async function deletePushSubscription(endpoint: string) {
+  await requireAdmin();
+  await removePushSubscriptions([String(endpoint)]);
+  refresh();
+}
+
+/** Sends a test notification to every phone; returns how many got it. */
+export async function sendTestPush() {
+  await requireAdmin();
+  return sendPush(
+    { title: "WINKY notifications are on", body: "New orders will show up here. Tap one to open it.", url: "/admin/orders", tag: "test" },
+    await requestOrigin(),
+  );
 }
 
 /** Saves a showcase colour picked in the dashboard so every product can use it. */

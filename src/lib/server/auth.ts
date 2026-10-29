@@ -12,7 +12,8 @@ import { connection } from "next/server";
  * password signs everyone out.
  */
 export const ADMIN_COOKIE = "winky_admin";
-const SESSION_DAYS = 7;
+// Long enough that tapping an order notification on the home screen app rarely meets the login page
+const SESSION_DAYS = 30;
 
 export const adminConfigured = () => Boolean(process.env.ADMIN_PASSWORD);
 

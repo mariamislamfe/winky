@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { CopyButton } from "@/components/admin/CopyButton";
 import { DesignFiles, OrderMockup } from "@/components/admin/CustomOrderTools";
+import { DeleteOrderButton } from "@/components/admin/DeleteOrderButton";
 import { OrderAdminForm } from "@/components/admin/OrderAdminForm";
 import { PLAIN_BASES, TEXT_COLORS, TEXT_STYLES } from "@/config/customization";
 import { DEPOSIT_STATUSES, ORDER_STATUSES } from "@/config/orders";
@@ -115,6 +116,8 @@ async function OrderDetail({ params }: { params: PageProps<"/admin/orders/[id]">
           <Card title="Track on Zink">
             <OrderAdminForm order={order} />
           </Card>
+
+          <DeleteOrderButton id={order.id} number={order.number} />
         </div>
       </div>
     </>

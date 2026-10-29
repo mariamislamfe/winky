@@ -1,25 +1,29 @@
 import "server-only";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { cacheLife, cacheTag } from "next/cache";
 import { STAGE_COLORS } from "@/config/catalog";
+import { EXPENSE_CATEGORIES } from "@/config/finance";
 import { GOVERNORATES, type DeliveryFees } from "@/config/orders";
+import type { FinanceEntry, NewFinanceEntry } from "@/lib/finance";
 import { storage } from "./supabase";
 
 /**
  * Small store-wide settings saved from the dashboard (custom showcase
- * colours, delivery fees, the order notification channel), kept as JSON files in the private "settings"
+ * colours, delivery fees, push notification keys and phones, finance entries), kept as JSON files in the private "settings"
  * bucket (no database table needed).
  */
 const STAGE_COLORS_FILE = "stage-colors.json";
 const DELIVERY_FEES_FILE = "delivery-fees.json";
-const NOTIFY_FILE = "notify.json";
+const FINANCE_FILE = "finance.json";
 const MAX_CUSTOM_COLORS = 24;
 
 export const SETTINGS_TAG = "settings";
 export const HEX_COLOR = /^#[0-9A-F]{6}$/;
 
 async function readJson(file: string): Promise<unknown> {
-  const { data, error } = await storage("settings").download(file);
+  // A fresh nonce skips Supabase's CDN copy, which can lag behind a save by a few seconds
+  // (long enough for a second save to start from the old list and undo the first)
+  const { data, error } = await storage("settings").download(file, { cacheNonce: randomUUID() });
   if (error || !data) return null;
   try {
     return JSON.parse(await data.text());
@@ -86,25 +90,82 @@ export async function getDeliveryFees(): Promise<DeliveryFees> {
   return readDeliveryFees();
 }
 
-// ── Order notifications ──────────────────────────────────────────
+// ── Order notifications (Web Push) ───────────────────────────────
 
-const NOTIFY_TOPIC = /^winky-[A-Za-z0-9_-]{16,40}$/;
+const PUSH_KEYS_FILE = "push-keys.json";
+const PUSH_SUBSCRIPTIONS_FILE = "push-subscriptions.json";
 
-/** The private ntfy channel new orders are sent to, or null before it's set up. */
-export async function readNotifyTopic(): Promise<string | null> {
-  const raw = await readJson(NOTIFY_FILE);
-  const topic = raw && typeof raw === "object" ? (raw as { topic?: unknown }).topic : null;
-  return typeof topic === "string" && NOTIFY_TOPIC.test(topic) ? topic : null;
+/** Signing keys for push messages, made once on first use. */
+export async function getVapidKeys(): Promise<{ publicKey: string; privateKey: string }> {
+  const raw = (await readJson(PUSH_KEYS_FILE)) as { publicKey?: unknown; privateKey?: unknown } | null;
+  if (typeof raw?.publicKey === "string" && typeof raw.privateKey === "string") return { publicKey: raw.publicKey, privateKey: raw.privateKey };
+  const { generateVAPIDKeys } = await import("web-push");
+  const keys = generateVAPIDKeys();
+  await writeJson(PUSH_KEYS_FILE, keys);
+  return keys;
 }
 
-/**
- * The channel name works like a password (anyone who knows it can read the
- * notifications), so it's long and random, made once on first use.
- */
-export async function ensureNotifyTopic(): Promise<string> {
-  const existing = await readNotifyTopic();
-  if (existing) return existing;
-  const topic = `winky-${randomBytes(15).toString("base64url")}`;
-  await writeJson(NOTIFY_FILE, { topic });
-  return topic;
+export type PushDevice = {
+  subscription: { endpoint: string; keys: { p256dh: string; auth: string } };
+  /** e.g. "iPhone", shown in the dashboard */
+  label: string;
+  addedAt: string;
+};
+
+function validDevice(d: unknown): d is PushDevice {
+  const s = (d as PushDevice | null)?.subscription;
+  return (
+    typeof s?.endpoint === "string" &&
+    s.endpoint.startsWith("https://") &&
+    typeof s.keys?.p256dh === "string" &&
+    typeof s.keys?.auth === "string" &&
+    typeof (d as PushDevice).label === "string"
+  );
+}
+
+/** Phones that turned order notifications on. */
+export async function readPushSubscriptions(): Promise<PushDevice[]> {
+  const list = await readJson(PUSH_SUBSCRIPTIONS_FILE);
+  return Array.isArray(list) ? list.filter(validDevice) : [];
+}
+
+export async function addPushSubscription(device: PushDevice) {
+  const others = (await readPushSubscriptions()).filter((d) => d.subscription.endpoint !== device.subscription.endpoint);
+  await writeJson(PUSH_SUBSCRIPTIONS_FILE, [...others, device].slice(-20));
+}
+
+export async function removePushSubscriptions(endpoints: string[]) {
+  const list = await readPushSubscriptions();
+  const next = list.filter((d) => !endpoints.includes(d.subscription.endpoint));
+  if (next.length !== list.length) await writeJson(PUSH_SUBSCRIPTIONS_FILE, next);
+}
+
+// ── Finance ──────────────────────────────────────────────────────
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const money = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v >= 0;
+const count = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 10000;
+
+function validEntry(e: unknown): e is FinanceEntry {
+  if (!e || typeof e !== "object") return false;
+  const x = e as Record<string, unknown>;
+  if (typeof x.id !== "string" || typeof x.date !== "string" || !DAY.test(x.date) || typeof x.note !== "string") return false;
+  if (x.kind === "expense") return money(x.amount) && EXPENSE_CATEGORIES.some((c) => c.id === x.category);
+  if (x.kind === "sale") return count(x.cases) && count(x.customCases) && money(x.extra);
+  return false;
+}
+
+/** Expenses and outside orders added on the finance page, oldest first. */
+export async function readFinanceEntries(): Promise<FinanceEntry[]> {
+  const list = await readJson(FINANCE_FILE);
+  return Array.isArray(list) ? list.filter(validEntry) : [];
+}
+
+export async function addFinanceEntry(entry: NewFinanceEntry) {
+  const next = [...(await readFinanceEntries()), { ...entry, id: randomBytes(8).toString("hex") } as FinanceEntry];
+  await writeJson(FINANCE_FILE, next);
+}
+
+export async function removeFinanceEntry(id: string) {
+  await writeJson(FINANCE_FILE, (await readFinanceEntries()).filter((e) => e.id !== id));
 }

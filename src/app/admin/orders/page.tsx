@@ -36,6 +36,12 @@ async function OrderList({ searchParams }: { searchParams: PageProps<"/admin/ord
         {orders.length} {orders.length === 1 ? "order" : "orders"}, {count("new")} new. Open one to see everything you need to place it on Zink.
       </p>
 
+      {params.deleted === "1" && (
+        <p role="status" className="mt-4 rounded-2xl bg-mint px-4 py-3 font-semibold">
+          Order deleted.
+        </p>
+      )}
+
       <nav aria-label="Filter orders" className="mt-6 flex flex-wrap gap-2">
         {[{ id: "all", label: "All", n: orders.length }, ...ORDER_STATUSES.map((s) => ({ id: s.id, label: s.label, n: count(s.id) }))].map((f) => (
           <Link

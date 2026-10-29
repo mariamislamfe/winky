@@ -19,7 +19,7 @@ import type { CartLine, Customization, DepositStatus, DesignLayer, Order, OrderC
 import { designExists, receiptExists } from "./designs";
 import { readDeliveryFees } from "./settings";
 import { readProducts } from "./store";
-import { db } from "./supabase";
+import { db, storage } from "./supabase";
 
 /**
  * Orders live in the `orders` table: the order as JSON, plus a database
@@ -239,4 +239,22 @@ export async function updateOrder(
   const { error } = await db().from("orders").update({ data: next }).eq("id", id);
   if (error) throw new Error(`Couldn't save the order: ${error.message}`);
   return next;
+}
+
+/**
+ * Deletes an order for good, with the customer's design files and transfer
+ * screenshot. Returns false when the order was already gone.
+ */
+export async function removeOrder(id: string) {
+  const order = await readOrder(id);
+  if (!order) return false;
+  const { error } = await db().from("orders").delete().eq("id", id);
+  if (error) throw new Error(`Couldn't delete the order: ${error.message}`);
+  const designs = [...new Set(order.lines.flatMap((l) => l.custom?.layers ?? []).flatMap((l) => (l.kind === "image" && l.fileId ? [l.fileId] : [])))];
+  // The order is already gone; files that fail to delete are only leftovers
+  await Promise.all([
+    designs.length ? storage("designs").remove(designs) : null,
+    order.deposit.receiptFileId ? storage("receipts").remove([order.deposit.receiptFileId]) : null,
+  ]).catch((err) => console.error("Order files not deleted", err));
+  return true;
 }

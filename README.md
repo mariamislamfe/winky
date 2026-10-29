@@ -16,7 +16,7 @@ npm run build && npm start
 
 Add, edit, publish/unpublish, reorder and delete your products. Each product has photos, a name, a price, a short line, a description, a showcase color, a "New" flag and, for cases, the phone models it fits. Saving updates the store immediately.
 
-- **Login:** one password, set as `ADMIN_PASSWORD` in `.env.local` locally (already created, change it) and in your host's environment in production. Sessions last 7 days; changing the password signs everyone out.
+- **Login:** one password, set as `ADMIN_PASSWORD` in `.env.local` locally (already created, change it) and in your host's environment in production. Sessions last 30 days; changing the password signs everyone out.
 - **Photos:** PNG, JPG or WebP up to 15 MB. They're auto-rotated, resized to 2000 px and converted to WebP. **Transparent PNG cut-outs** float freely on the homepage. Regular photos get rounded corners.
 - **Where data lives:** Supabase (see below).
 - **Sample products:** until you publish your first real product, the store shows 14 illustrated sample designs (`src/data/samples.ts`, prices are placeholders). As soon as one real product is live, every sample disappears automatically. If you unpublish everything, they come back.
@@ -32,7 +32,13 @@ Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. E
 
 Placing the order on Zink is still manual until Zink offers an API.
 
-**Phone notifications:** every new order sends a notification through [ntfy](https://ntfy.sh) (free, no account). Set it up in the dashboard under **Notifications**: install the ntfy app, subscribe to the store's private channel shown there, and send a test. Tapping a notification opens the order. The channel name is random and stored in the `settings` bucket; keep it private.
+**Phone notifications:** every new order sends a WINKY notification (Web Push from the site itself, no other app). Add the dashboard to the phone's home screen (on iPhone this is required), open it from there, and turn notifications on under **Notifications**; tapping one opens the order. The signing keys and the phones are kept in the `settings` bucket, made on first use.
+
+**Deleting an order:** at the bottom of an order, **Delete this order** removes it with its design files and InstaPay screenshot.
+
+## Finance (`/admin/finance`)
+
+Profit per month or all time: **EGP 38 per case and EGP 68 per custom case** (`PROFIT_PER_ITEM` in `src/config/pricing.ts`) from every website order that isn't cancelled, plus **outside orders** you add by hand (Instagram, friends…), minus the **expenses** you add (ads, materials, packaging, delivery, other). Entries are kept in the `settings` bucket.
 
 ## Prices, delivery and payments
 
@@ -53,7 +59,7 @@ Everything the store saves lives in Supabase, so the site itself keeps nothing o
 | Product photos | `products` storage bucket (public) |
 | Customers' original designs | `designs` bucket (private) |
 | InstaPay screenshots | `receipts` bucket (private) |
-| Saved showcase colours, delivery fees, notification channel | `settings` bucket (private, JSON files) |
+| Saved showcase colours, delivery fees, finance entries, push notification keys and phones | `settings` bucket (private, JSON files) |
 
 Only the server talks to Supabase, with the **service role key**. Row level security is on with no policies, so the public key can't read anything. Customers' and dashboard uploads go straight from the browser to storage with one-time signed links from `/api/uploads`; the buckets only accept PNG, JPG and WebP within the size limits.
 
