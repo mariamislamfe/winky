@@ -27,7 +27,7 @@ Checkout is **cash on delivery**: Zink prints, delivers and collects the cash. E
 
 - Customer name, mobile (normalized to 01xxxxxxxxx), governorate, city, address and notes, with copy buttons for entering them on Zink.
 - Every item with its phone model, quantity and price (recalculated on the server from the catalog, never trusted from the browser).
-- For custom items, side by side: the design **on the product** (Download mockup, a PNG on white) and the design **ready to print** (Download ready-to-print design, a transparent PNG of the whole print area with every layer in place, 3000 px wide or 300 DPI once `PRINT_AREA_CM` is set). Below them, each layer's exact placement and the customer's **original file** (stored exactly as uploaded).
+- For custom items, side by side: the design **on the product** (Download mockup, a PNG on white) and the design **ready to print** (Download ready-to-print design, a transparent PNG of the whole print area with every layer in place, 3000 px wide or 300 DPI once `PRINT_AREA_CM` is set). Below them, each layer's exact placement and the customer's **original upload** (stored exactly as uploaded, before any resizing).
 - Status (New, Placed on Zink, Shipped, Delivered, Cancelled), the Zink order number and a private note.
 
 Placing the order on Zink is still manual until Zink offers an API.
