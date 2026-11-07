@@ -14,6 +14,8 @@ export const SITE = {
    * refuses them. Set to false to start selling totes.
    */
   totesComingSoon: true,
+  /** Meta (Facebook/Instagram) Pixel for ads, on the storefront only. Empty turns it off. */
+  metaPixelId: "1706272377584823",
 } as const;
 
 /** Primary navigation, shared by header, mobile menu and footer. */

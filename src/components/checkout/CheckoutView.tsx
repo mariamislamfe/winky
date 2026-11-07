@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import type { PlaceOrderResult } from "@/app/api/orders/route";
 import { WinkMark } from "@/components/brand/WinkMark";
 import { CartLineItem } from "@/components/cart/CartLineItem";
@@ -11,6 +11,7 @@ import { depositFor, INSTAPAY, instapayReady } from "@/config/payments";
 import { InstapayDeposit } from "./InstapayDeposit";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { linesParams, track } from "@/lib/pixel";
 import type { CartLine, OrderCustomer } from "@/lib/types";
 
 type Field = {
@@ -82,6 +83,14 @@ export function CheckoutView({ deliveryFees }: { deliveryFees: DeliveryFees }) {
   const total = subtotal == null ? null : subtotal + (fee ?? 0);
   const deposit = total == null ? null : depositFor(total, count);
 
+  // InitiateCheckout once, when the bag has loaded with something in it
+  const started = useRef(false);
+  useEffect(() => {
+    if (!hydrated || started.current || !lines.length || subtotal == null) return;
+    started.current = true;
+    track("InitiateCheckout", linesParams(lines, subtotal));
+  }, [hydrated, lines, subtotal]);
+
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { payer, reference, receiptFileId, ...customer } = Object.fromEntries(new FormData(e.currentTarget)) as Record<
@@ -91,6 +100,8 @@ export function CheckoutView({ deliveryFees }: { deliveryFees: DeliveryFees }) {
     start(async () => {
       const result = await placeOrder({ customer, lines: forServer(lines), deposit: { payer, reference, receiptFileId } });
       if (result.ok) {
+        // The order number keeps Meta from counting the same purchase twice
+        track("Purchase", linesParams(lines, result.total), result.number);
         setDone(result);
         setErrors({});
         clear();

@@ -14,6 +14,7 @@ import {
 import { useCatalog } from "@/components/catalog/CatalogProvider";
 import { SITE } from "@/config/site";
 import { findProduct, linePrice } from "./catalog";
+import { linesParams, track } from "./pixel";
 import type { CartLine, Customization } from "./types";
 
 // v2: customizations are uploaded/typed layers with exact placement
@@ -127,7 +128,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "add", line, id });
     setLastAdded({ id, at: Date.now() });
     if (opts?.openDrawer !== false) setOpen(true);
-  }, []);
+    const unit = linePrice({ ...line, id }, products);
+    if (unit != null) track("AddToCart", { ...linesParams([{ ...line, id }], unit * line.quantity), content_name: findProduct(products, line.slug)?.name });
+  }, [products]);
 
   const value = useMemo<CartContextValue>(() => {
     // Products removed in the dashboard silently drop out of the bag

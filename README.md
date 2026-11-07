@@ -48,6 +48,10 @@ Profit per month or all time: **EGP 38 per case and EGP 68 per custom case** (`P
 - **Deposit:** every order needs an **InstaPay deposit of EGP 100 per item** (`src/config/payments.ts`, never more than the order total); the rest is cash on delivery. InstaPay has no API, so customers upload a screenshot of the transfer and you mark the deposit *Received* in the order. The InstaPay address, number, payment link and QR code (`public/instapay-qr.png`) are set there too; if both the address and number are ever emptied, checkout pauses.
 - Orders are sent to `/api/orders` (a route handler, so a customer who opened checkout before a new deploy can still order).
 
+## Meta Pixel
+
+The storefront (not the dashboard) loads the Meta Pixel (`metaPixelId` in `src/config/site.ts`; empty turns it off) and sends **PageView** on every page, **ViewContent** on product pages, **AddToCart**, **InitiateCheckout** and **Purchase** (order total in EGP, with the order number as event ID so a purchase is never counted twice). Code: `src/lib/pixel.ts`.
+
 ## Supabase
 
 Everything the store saves lives in Supabase, so the site itself keeps nothing on disk:

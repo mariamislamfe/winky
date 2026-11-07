@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useState, ViewTransition } from "react";
+import { useEffect, useState, ViewTransition } from "react";
 import { ProductVisual } from "@/components/art/ProductVisual";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { Price } from "@/components/shop/Price";
 import { CATEGORY_LABEL, comingSoon, wasPrice } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { descriptionFor, modelsFor } from "@/lib/models";
+import { productParams, track } from "@/lib/pixel";
 import type { Product } from "@/lib/types";
 import { AddToBagButton } from "./AddToBagButton";
 import { ModelPicker } from "./ModelPicker";
@@ -26,6 +27,12 @@ export function ProductDetail({ product }: { product: Product }) {
   const was = wasPrice(product.category);
   const needsModel = isCase;
   const description = descriptionFor(product);
+
+  useEffect(() => {
+    track("ViewContent", productParams(product));
+    // once per product page
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.slug]);
 
   return (
     <div className="mx-auto grid max-w-[1400px] gap-10 px-5 pt-[calc(var(--header-h)+2rem)] pb-16 md:px-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-[calc(var(--header-h)+3rem)]">
