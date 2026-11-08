@@ -224,7 +224,7 @@ export async function createOrder(
 
 export async function updateOrder(
   id: string,
-  patch: { status?: OrderStatus; depositStatus?: DepositStatus; zinkRef?: string; adminNote?: string },
+  patch: { status?: OrderStatus; depositStatus?: DepositStatus; zinkRef?: string; adminNote?: string; zinkOwed?: number },
 ) {
   const current = await readOrder(id);
   if (!current) return null;
@@ -234,6 +234,7 @@ export async function updateOrder(
     ...(patch.depositStatus ? { deposit: { ...current.deposit, status: patch.depositStatus } } : {}),
     ...(patch.zinkRef !== undefined ? { zinkRef: patch.zinkRef.trim().slice(0, 80) } : {}),
     ...(patch.adminNote !== undefined ? { adminNote: patch.adminNote.trim().slice(0, 2000) } : {}),
+    ...(patch.zinkOwed !== undefined ? { zinkOwed: patch.zinkOwed } : {}),
     updatedAt: new Date().toISOString(),
   };
   const { error } = await db().from("orders").update({ data: next }).eq("id", id);

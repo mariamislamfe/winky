@@ -1,5 +1,6 @@
 /** Finance page (/admin/finance): what money can go out on. */
 export const EXPENSE_CATEGORIES = [
+  { id: "zink", label: "Zink" },
   { id: "ads", label: "Ads" },
   { id: "materials", label: "Materials" },
   { id: "packaging", label: "Packaging" },

@@ -1,15 +1,30 @@
 import { EXPENSE_CATEGORIES, type ExpenseCategory } from "@/config/finance";
-import { PROFIT_PER_ITEM } from "@/config/pricing";
+import { CASE_PRICE, PRICING } from "@/config/pricing";
 import type { Order } from "@/lib/types";
 
 /** Money in minor units; dates as YYYY-MM-DD in Egypt time. */
 export type Expense = { id: string; kind: "expense"; date: string; category: ExpenseCategory; amount: number; note: string };
-/** An order that didn't come through the website (Instagram, friends…). */
-export type OutsideSale = { id: string; kind: "sale"; date: string; note: string; cases: number; customCases: number; extra: number };
+/**
+ * An order that didn't come through the website (Instagram, friends…).
+ * `extra` is any other amount it sold for; `owed` is what Zink still hasn't paid for it.
+ */
+export type OutsideSale = {
+  id: string;
+  kind: "sale";
+  date: string;
+  note: string;
+  cases: number;
+  customCases: number;
+  extra: number;
+  owed?: number;
+};
 export type FinanceEntry = Expense | OutsideSale;
 export type NewFinanceEntry = Omit<Expense, "id"> | Omit<OutsideSale, "id">;
 
 export const ALL_TIME = "all";
+
+/** Prices outside orders are counted at: EGP 120 a case, EGP 150 a custom case. */
+export const OUTSIDE_PRICE = { case: CASE_PRICE, customCase: PRICING.customBase.case + PRICING.customizationFee.case } as const;
 
 /** YYYY-MM-DD for a moment, in Egypt time. */
 export const cairoDay = (d: Date | string) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
@@ -19,29 +34,38 @@ export const monthOf = (day: string) => day.slice(0, 7);
 export const monthLabel = (month: string) =>
   new Date(`${month}-01T12:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
 
+/** EGP typed in a box ("1,250" or "99.5") → minor units; empty → 0 when optional; null if it isn't a sensible amount. */
+export function parseEgp(raw: unknown, { optional = false } = {}) {
+  const text = String(raw ?? "").replace(/,/g, "").trim();
+  if (!text) return optional ? 0 : null;
+  const n = Number(text);
+  return Number.isFinite(n) && n >= 0 && n <= 10_000_000 ? Math.round(n * 100) : null;
+}
+
+/** What a website order sold for: its items, without the delivery fee (that goes to Zink). */
 export function orderPieces(order: Order) {
   let cases = 0;
   let customCases = 0;
-  let profit = 0;
   for (const l of order.lines) {
     if (l.category === "case" && l.custom) customCases += l.quantity;
     else if (l.category === "case") cases += l.quantity;
-    profit += l.quantity * PROFIT_PER_ITEM[l.category][l.custom ? "custom" : "regular"];
   }
-  return { cases, customCases, profit };
+  return { cases, customCases, amount: order.subtotal, owed: Math.min(order.zinkOwed ?? 0, order.subtotal) };
 }
 
-export const saleProfit = (s: Pick<OutsideSale, "cases" | "customCases" | "extra">) =>
-  s.cases * PROFIT_PER_ITEM.case.regular + s.customCases * PROFIT_PER_ITEM.case.custom + s.extra;
+export const saleAmount = (s: Pick<OutsideSale, "cases" | "customCases" | "extra">) =>
+  s.cases * OUTSIDE_PRICE.case + s.customCases * OUTSIDE_PRICE.customCase + s.extra;
 
 export type LedgerRow =
-  | { kind: "order"; date: string; order: Order; cases: number; customCases: number; profit: number }
-  | { kind: "sale"; date: string; entry: OutsideSale; profit: number }
+  | { kind: "order"; date: string; order: Order; cases: number; customCases: number; amount: number; owed: number }
+  | { kind: "sale"; date: string; entry: OutsideSale; amount: number; owed: number }
   | { kind: "expense"; date: string; entry: Expense };
 
 /**
  * Totals for a month (or all time): website orders count unless cancelled,
  * outside orders and expenses are the ones added on the finance page.
+ * Net profit is sales minus expenses; money still on Zink is part of sales
+ * but hasn't reached us yet.
  */
 export function summarize(orders: Order[], entries: FinanceEntry[], month: string) {
   const inPeriod = (day: string) => month === ALL_TIME || monthOf(day) === month;
@@ -53,11 +77,15 @@ export function summarize(orders: Order[], entries: FinanceEntry[], month: strin
   }
   for (const e of entries) {
     if (!inPeriod(e.date)) continue;
-    rows.push(e.kind === "sale" ? { kind: "sale", date: e.date, entry: e, profit: saleProfit(e) } : { kind: "expense", date: e.date, entry: e });
+    if (e.kind === "expense") rows.push({ kind: "expense", date: e.date, entry: e });
+    else {
+      const amount = saleAmount(e);
+      rows.push({ kind: "sale", date: e.date, entry: e, amount, owed: Math.min(e.owed ?? 0, amount) });
+    }
   }
   rows.sort((a, b) => b.date.localeCompare(a.date));
 
-  const t = { websiteOrders: 0, outsideOrders: 0, cases: 0, customCases: 0, profit: 0, expenses: 0 };
+  const t = { websiteOrders: 0, outsideOrders: 0, cases: 0, customCases: 0, sales: 0, owed: 0, expenses: 0 };
   const byCategory = Object.fromEntries(EXPENSE_CATEGORIES.map((c) => [c.id, 0])) as Record<ExpenseCategory, number>;
   for (const r of rows) {
     if (r.kind === "expense") {
@@ -69,10 +97,15 @@ export function summarize(orders: Order[], entries: FinanceEntry[], month: strin
       const p = r.kind === "order" ? r : r.entry;
       t.cases += p.cases;
       t.customCases += p.customCases;
-      t.profit += r.profit;
+      t.sales += r.amount;
+      t.owed += r.owed;
     }
   }
-  return { rows, totals: { ...t, net: t.profit - t.expenses }, byCategory };
+  return {
+    rows,
+    totals: { ...t, collected: t.sales - t.owed, net: t.sales - t.expenses, inHand: t.sales - t.owed - t.expenses },
+    byCategory,
+  };
 }
 
 /** Months that have anything in them, newest first, always including this month. */

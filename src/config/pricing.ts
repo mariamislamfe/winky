@@ -28,12 +28,3 @@ export const PRICING = {
  */
 export const COMPARE_AT = { case: 20000, customCase: 25000 } as const;
 
-/**
- * What WINKY keeps from each piece sold (minor units), used by the finance
- * page: EGP 38 per case, EGP 68 per custom case. Totes aren't on sale yet:
- * set theirs when they launch.
- */
-export const PROFIT_PER_ITEM = {
-  case: { regular: 3800, custom: 6800 },
-  tote: { regular: 0, custom: 0 },
-} as const satisfies Record<Category, { regular: number; custom: number }>;

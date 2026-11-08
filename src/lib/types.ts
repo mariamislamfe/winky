@@ -179,6 +179,8 @@ export type Order = {
   currency: string;
   /** Order number on Zink, once placed there */
   zinkRef: string;
+  /** Money from this order Zink still hasn't paid us (minor units), set on the finance page */
+  zinkOwed?: number;
   /** Private note for the team */
   adminNote: string;
 };

@@ -38,7 +38,14 @@ Placing the order on Zink is still manual until Zink offers an API.
 
 ## Finance (`/admin/finance`)
 
-Profit per month or all time: **EGP 38 per case and EGP 68 per custom case** (`PROFIT_PER_ITEM` in `src/config/pricing.ts`) from every website order that isn't cancelled, plus **outside orders** you add by hand (Instagram, friends…), minus the **expenses** you add (ads, materials, packaging, delivery, other). Entries are kept in the `settings` bucket.
+Per month or all time:
+
+- **Sales**: what each order sold for, without delivery: every website order that isn't cancelled (its subtotal), plus **outside orders** you add by hand (Instagram, friends…) at EGP 120 a case and EGP 150 a custom case, plus any other amount.
+- **Expenses**: everything you spend, added by hand (Zink, ads, materials, packaging, delivery, other).
+- **Net profit** = sales − expenses.
+- **Still on Zink**: under each order you can set how much of it Zink hasn't paid you yet (e.g. 50 of a 120 order). It stays part of sales; the page shows the total still on Zink, what's collected so far, and what's in hand until Zink pays the rest.
+
+Entries are kept in the `settings` bucket.
 
 ## Prices, delivery and payments
 

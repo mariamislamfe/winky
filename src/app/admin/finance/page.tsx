@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AdminBar } from "@/components/admin/AdminBar";
-import { DeleteEntryButton, ExpenseForm, OutsideSaleForm } from "@/components/admin/FinanceForms";
+import { DeleteEntryButton, ExpenseForm, OutsideSaleForm, OwedEditor } from "@/components/admin/FinanceForms";
 import { EXPENSE_CATEGORIES } from "@/config/finance";
-import { PROFIT_PER_ITEM } from "@/config/pricing";
 import { activeMonths, ALL_TIME, cairoDay, monthLabel, summarize, type LedgerRow } from "@/lib/finance";
 import { formatPrice } from "@/lib/format";
 import { requireAdmin } from "@/lib/server/auth";
@@ -19,9 +18,9 @@ export default function FinancePage({ searchParams }: PageProps<"/admin/finance"
       <main id="main" className="mx-auto max-w-[1100px] px-5 py-10">
         <h1 className="font-display text-5xl">Finance</h1>
         <p className="mt-2 max-w-[64ch] opacity-75">
-          Profit is counted at {formatPrice(PROFIT_PER_ITEM.case.regular)} per case and {formatPrice(PROFIT_PER_ITEM.case.custom)} per
-          custom case, from every website order that isn&apos;t cancelled plus the outside orders you add here. Expenses come off the
-          top.
+          Sales are what each order sold for (without delivery), from every website order that isn&apos;t cancelled plus the outside
+          orders you add here. Add everything you spend as an expense, Zink included: net profit is sales minus expenses. If Zink
+          hasn&apos;t paid you part of an order yet, set it under the order as still on Zink.
         </p>
         <Suspense fallback={<p className="py-20 text-center opacity-60">Loading…</p>}>
           <Finance searchParams={searchParams} />
@@ -60,18 +59,28 @@ async function Finance({ searchParams }: { searchParams: PageProps<"/admin/finan
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <section className={`rounded-[28px] p-5 sm:col-span-2 lg:col-span-1 ${totals.net >= 0 ? "bg-mint" : "bg-gum/20"}`}>
           <h3 className="font-semibold">Net profit</h3>
-          <p className="font-display mt-1 text-4xl tabular-nums">
-            {totals.net < 0 ? "−" : ""}
-            {formatPrice(Math.abs(totals.net))}
-          </p>
-          <p className="mt-1 text-sm opacity-75">Profit from orders minus expenses</p>
+          <p className="font-display mt-1 text-4xl tabular-nums">{signed(totals.net)}</p>
+          <p className="mt-1 text-sm opacity-75">Sales minus expenses</p>
+          {totals.owed > 0 && (
+            <p className="mt-2 text-sm">
+              <span className="font-semibold tabular-nums">{signed(totals.inHand)}</span>{" "}
+              <span className="opacity-75">in hand until Zink pays the rest</span>
+            </p>
+          )}
         </section>
         <section className={card}>
-          <h3 className="font-semibold">Profit from orders</h3>
-          <p className="font-display mt-1 text-3xl tabular-nums">{formatPrice(totals.profit)}</p>
+          <h3 className="font-semibold">Sales</h3>
+          <p className="font-display mt-1 text-3xl tabular-nums">{formatPrice(totals.sales)}</p>
           <p className="mt-1 text-sm opacity-75">
-            {totals.cases} {totals.cases === 1 ? "case" : "cases"}, {totals.customCases} custom
+            {totals.websiteOrders + totals.outsideOrders} {totals.websiteOrders + totals.outsideOrders === 1 ? "order" : "orders"} (
+            {totals.websiteOrders} website, {totals.outsideOrders} outside) · {totals.cases} {totals.cases === 1 ? "case" : "cases"},{" "}
+            {totals.customCases} custom
           </p>
+        </section>
+        <section className={`rounded-[28px] p-5 ${totals.owed ? "bg-butter" : "bg-white ring-2 ring-grape/10"}`}>
+          <h3 className="font-semibold">Still on Zink</h3>
+          <p className="font-display mt-1 text-3xl tabular-nums">{formatPrice(totals.owed)}</p>
+          <p className="mt-1 text-sm opacity-75">Collected so far: {formatPrice(totals.collected)}</p>
         </section>
         <section className={card}>
           <h3 className="font-semibold">Expenses</h3>
@@ -85,20 +94,13 @@ async function Finance({ searchParams }: { searchParams: PageProps<"/admin/finan
             ))}
           </dl>
         </section>
-        <section className={card}>
-          <h3 className="font-semibold">Orders</h3>
-          <p className="font-display mt-1 text-3xl tabular-nums">{totals.websiteOrders + totals.outsideOrders}</p>
-          <p className="mt-1 text-sm opacity-75">
-            {totals.websiteOrders} on the website, {totals.outsideOrders} outside
-          </p>
-        </section>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div className="grid h-fit gap-6">
           <section className={card}>
             <h2 className="font-display text-2xl">Add an expense</h2>
-            <p className="mt-1 text-sm opacity-75">Ads, materials, packaging… anything you paid for.</p>
+            <p className="mt-1 text-sm opacity-75">Zink, ads, materials, packaging… everything you paid for.</p>
             <ExpenseForm today={today} />
           </section>
           <section className={card}>
@@ -125,6 +127,8 @@ async function Finance({ searchParams }: { searchParams: PageProps<"/admin/finan
   );
 }
 
+const signed = (minor: number) => `${minor < 0 ? "−" : ""}${formatPrice(Math.abs(minor))}`;
+
 const shortDay = (day: string) =>
   new Date(`${day}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 
@@ -142,12 +146,12 @@ function Row({ row }: { row: LedgerRow }) {
       </Link>
     );
     detail = `Website · ${piecesText(row.cases, row.customCases) || "no cases"}`;
-    amount = row.profit;
+    amount = row.amount;
   } else if (row.kind === "sale") {
     title = row.entry.note || "Outside order";
     const extra = row.entry.extra ? `+ ${formatPrice(row.entry.extra)} other` : "";
     detail = `Outside order · ${[piecesText(row.entry.cases, row.entry.customCases), extra].filter(Boolean).join(" ")}`;
-    amount = row.profit;
+    amount = row.amount;
   } else {
     const category = EXPENSE_CATEGORIES.find((c) => c.id === row.entry.category)?.label ?? "Expense";
     title = row.entry.note || category;
@@ -162,6 +166,9 @@ function Row({ row }: { row: LedgerRow }) {
       <span className="min-w-0 flex-1">
         <span className="block font-semibold break-words">{title}</span>
         <span className="block text-sm opacity-70">{detail}</span>
+        {row.kind !== "expense" && (
+          <OwedEditor kind={row.kind} id={row.kind === "order" ? row.order.id : row.entry.id} owed={row.owed} />
+        )}
       </span>
       <span className={`shrink-0 font-bold tabular-nums ${out ? "text-gum-deep" : ""}`}>
         {out ? "−" : "+"}

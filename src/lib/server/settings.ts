@@ -151,7 +151,7 @@ function validEntry(e: unknown): e is FinanceEntry {
   const x = e as Record<string, unknown>;
   if (typeof x.id !== "string" || typeof x.date !== "string" || !DAY.test(x.date) || typeof x.note !== "string") return false;
   if (x.kind === "expense") return money(x.amount) && EXPENSE_CATEGORIES.some((c) => c.id === x.category);
-  if (x.kind === "sale") return count(x.cases) && count(x.customCases) && money(x.extra);
+  if (x.kind === "sale") return count(x.cases) && count(x.customCases) && money(x.extra) && (x.owed === undefined || money(x.owed));
   return false;
 }
 
@@ -164,6 +164,15 @@ export async function readFinanceEntries(): Promise<FinanceEntry[]> {
 export async function addFinanceEntry(entry: NewFinanceEntry) {
   const next = [...(await readFinanceEntries()), { ...entry, id: randomBytes(8).toString("hex") } as FinanceEntry];
   await writeJson(FINANCE_FILE, next);
+}
+
+/** Sets what Zink still owes for an outside order; false when the entry is gone. */
+export async function setOutsideSaleOwed(id: string, owed: number) {
+  const list = await readFinanceEntries();
+  const entry = list.find((e) => e.id === id);
+  if (entry?.kind !== "sale") return false;
+  await writeJson(FINANCE_FILE, list.map((e) => (e === entry ? { ...entry, owed } : e)));
+  return true;
 }
 
 export async function removeFinanceEntry(id: string) {
