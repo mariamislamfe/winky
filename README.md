@@ -40,7 +40,7 @@ Placing the order on Zink is still manual until Zink offers an API.
 
 Per month or all time:
 
-- **Sales**: what each order sold for, without delivery: every website order that isn't cancelled (its subtotal), plus **outside orders** you add by hand (Instagram, friends…) at EGP 120 a case and EGP 150 a custom case, plus any other amount.
+- **Sales**: each order's total, delivery included: every website order that isn't cancelled (items + delivery fee), plus **outside orders** you add by hand (Instagram, friends…) at EGP 120 a case and EGP 150 a custom case, plus their delivery and any other amount.
 - **Expenses**: everything you spend, added by hand (Zink, ads, materials, packaging, delivery, other).
 - **Net profit** = sales − expenses.
 - **Still on Zink**: under each order you can set how much of it Zink hasn't paid you yet (e.g. 50 of a 120 order). It stays part of sales; the page shows the total still on Zink, what's collected so far, and what's in hand until Zink pays the rest.

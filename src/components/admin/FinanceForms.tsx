@@ -115,7 +115,7 @@ function SaleFields({
       </div>
       <div>
         <label htmlFor="sale-extra" className={label}>
-          Other amount (EGP) <span className="font-normal opacity-60">(optional)</span>
+          Delivery + other (EGP) <span className="font-normal opacity-60">(optional)</span>
         </label>
         <input id="sale-extra" name="extra" inputMode="decimal" value={v.extra} onChange={set("extra")} placeholder="0" className={field} />
       </div>

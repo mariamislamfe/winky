@@ -6,7 +6,7 @@ import type { Order } from "@/lib/types";
 export type Expense = { id: string; kind: "expense"; date: string; category: ExpenseCategory; amount: number; note: string };
 /**
  * An order that didn't come through the website (Instagram, friends…).
- * `extra` is any other amount it sold for; `owed` is what Zink still hasn't paid for it.
+ * `extra` is its delivery fee and any other amount it sold for; `owed` is what Zink still hasn't paid for it.
  */
 export type OutsideSale = {
   id: string;
@@ -42,7 +42,7 @@ export function parseEgp(raw: unknown, { optional = false } = {}) {
   return Number.isFinite(n) && n >= 0 && n <= 10_000_000 ? Math.round(n * 100) : null;
 }
 
-/** What a website order sold for: its items, without the delivery fee (that goes to Zink). */
+/** What a website order sold for: its total, items plus delivery (a fee not set yet counts as 0). */
 export function orderPieces(order: Order) {
   let cases = 0;
   let customCases = 0;
@@ -50,7 +50,7 @@ export function orderPieces(order: Order) {
     if (l.category === "case" && l.custom) customCases += l.quantity;
     else if (l.category === "case") cases += l.quantity;
   }
-  return { cases, customCases, amount: order.subtotal, owed: Math.min(order.zinkOwed ?? 0, order.subtotal) };
+  return { cases, customCases, amount: order.total, owed: Math.min(order.zinkOwed ?? 0, order.total) };
 }
 
 export const saleAmount = (s: Pick<OutsideSale, "cases" | "customCases" | "extra">) =>

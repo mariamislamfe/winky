@@ -44,7 +44,7 @@ export async function addOutsideSale(prev: FinanceFormState, form: FormData): Pr
   const extra = parseEgp(form.get("extra"), { optional: true });
   const owed = parseEgp(form.get("owed"), { optional: true });
   if (cases === null || customCases === null) return { error: "Enter the number of cases as a whole number." };
-  if (extra === null) return { error: "Enter the other amount in EGP, e.g. 50, or leave it empty." };
+  if (extra === null) return { error: "Enter the delivery and other amount in EGP, e.g. 50, or leave it empty." };
   if (owed === null) return { error: "Enter what's still on Zink in EGP, e.g. 50, or leave it empty." };
   if (!cases && !customCases && !extra) return { error: "Add at least one case, or the amount in EGP." };
   const amount = saleAmount({ cases, customCases, extra });

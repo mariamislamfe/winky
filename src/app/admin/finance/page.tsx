@@ -18,7 +18,7 @@ export default function FinancePage({ searchParams }: PageProps<"/admin/finance"
       <main id="main" className="mx-auto max-w-[1100px] px-5 py-10">
         <h1 className="font-display text-5xl">Finance</h1>
         <p className="mt-2 max-w-[64ch] opacity-75">
-          Sales are what each order sold for (without delivery), from every website order that isn&apos;t cancelled plus the outside
+          Sales are each order&apos;s total, delivery included, from every website order that isn&apos;t cancelled plus the outside
           orders you add here. Add everything you spend as an expense, Zink included: net profit is sales minus expenses. If Zink
           hasn&apos;t paid you part of an order yet, set it under the order as still on Zink.
         </p>
@@ -145,11 +145,12 @@ function Row({ row }: { row: LedgerRow }) {
         {row.order.number}, {row.order.customer.name}
       </Link>
     );
-    detail = `Website · ${piecesText(row.cases, row.customCases) || "no cases"}`;
+    const delivery = row.order.shipping ? ` + ${formatPrice(row.order.shipping)} delivery` : "";
+    detail = `Website · ${piecesText(row.cases, row.customCases) || "no cases"}${delivery}`;
     amount = row.amount;
   } else if (row.kind === "sale") {
     title = row.entry.note || "Outside order";
-    const extra = row.entry.extra ? `+ ${formatPrice(row.entry.extra)} other` : "";
+    const extra = row.entry.extra ? `+ ${formatPrice(row.entry.extra)} delivery & other` : "";
     detail = `Outside order · ${[piecesText(row.entry.cases, row.entry.customCases), extra].filter(Boolean).join(" ")}`;
     amount = row.amount;
   } else {
